@@ -7,20 +7,18 @@ import lombok.NoArgsConstructor;
 import java.util.List;
 
 @Data
-@NoArgsConstructor
-@AllArgsConstructor
-@Builder
 public class FindAndCountConfig {
+    private String instruction;
+    private String imageUrl;
     private List<Target> targets;
+    private List<HintConfig> hints;
+    private String explanation;
 
     @Data
-    @NoArgsConstructor
-    @AllArgsConstructor
-    @Builder
     public static class Target {
-        private Long id;
+        private String id;
         private String label;
         private String imageUrl;
-        private Integer correct;
+        private int correct;
     }
 }

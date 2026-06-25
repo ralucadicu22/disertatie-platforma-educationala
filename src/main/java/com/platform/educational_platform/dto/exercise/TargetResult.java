@@ -10,9 +10,9 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 @Builder
 public class TargetResult {
-    private Long targetId;
+    private String targetId;
     private String label;
     private boolean correct;
-    private Integer correctValue;
     private Integer givenValue;
+    private Integer correctValue;
 }

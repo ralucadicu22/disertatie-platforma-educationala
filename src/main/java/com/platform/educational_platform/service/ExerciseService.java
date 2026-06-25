@@ -2,11 +2,15 @@ package com.platform.educational_platform.service;
 
 import com.platform.educational_platform.dto.*;
 import com.platform.educational_platform.dto.config.FindAndCountConfig;
+import com.platform.educational_platform.dto.config.HintConfig;
+import com.platform.educational_platform.dto.config.SimpleAnswerConfig;
 import com.platform.educational_platform.dto.exercise.ExerciseDTO;
 import com.platform.educational_platform.dto.exercise.FeedbackResponse;
 import com.platform.educational_platform.dto.exercise.TargetResult;
 import com.platform.educational_platform.model.Exercise;
+import com.platform.educational_platform.model.ExerciseVersion;
 import com.platform.educational_platform.model.User;
+import com.platform.educational_platform.model.enums.VersionStatus;
 import com.platform.educational_platform.repository.ExerciseRepository;
 import com.platform.educational_platform.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -14,6 +18,7 @@ import org.springframework.stereotype.Service;
 import tools.jackson.databind.ObjectMapper;
 
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -25,6 +30,7 @@ public class ExerciseService {
     private final ObjectMapper objectMapper;
     private final UserProgressService userProgressService;
     private final UserRepository userRepository;
+
 
     public List<ExerciseDTO> getExercisesByQuiz(Long quizId) {
         return exerciseRepository.findByQuizIdOrderByOrderIndexAsc(quizId)
@@ -40,13 +46,15 @@ public class ExerciseService {
     }
 
     private ExerciseDTO toDTO(Exercise e) {
+        ExerciseVersion active = e.getCurrentVersion();
+        if (active == null || active.getStatus() != VersionStatus.PUBLISHED) {
+            throw new RuntimeException("Exercitiul nu are o versiune publicata");
+        }
+
         return ExerciseDTO.builder()
                 .id(e.getId())
                 .type(e.getType())
-                .questionText(e.getQuestionText())
-                .imageUrl(e.getImageUrl())
-                .config(e.getConfig())
-                .hint(e.getHint())
+                .config(active.getConfig())
                 .points(e.getPoints())
                 .difficulty(e.getDifficulty())
                 .orderIndex(e.getOrderIndex())
@@ -54,18 +62,24 @@ public class ExerciseService {
                 .build();
     }
 
+
+
     public FeedbackResponse checkAnswer(AnswerRequest request, String userEmail) {
         Exercise exercise = exerciseRepository.findById(request.getExerciseId())
                 .orElseThrow(() -> new RuntimeException("Exercitiul nu a fost gasit"));
+
+        ExerciseVersion activeVersion = exercise.getCurrentVersion();
+        if (activeVersion == null || activeVersion.getStatus() != VersionStatus.PUBLISHED) {
+            throw new RuntimeException("Exercitiul nu este disponibil momentan");
+        }
 
         User user = userRepository.findByEmail(userEmail)
                 .orElseThrow(() -> new RuntimeException("Utilizator negasit"));
 
         FeedbackResponse feedback = switch (exercise.getType()) {
-            case "FIND_AND_COUNT" -> checkFindAndCount(exercise, request);
-            default -> checkSimple(exercise, request);
+            case "FIND_AND_COUNT" -> checkFindAndCount(exercise, activeVersion, request);
+            default -> checkSimple(exercise, activeVersion, request);
         };
-
 
         userProgressService.recordAttempt(
                 user,
@@ -78,107 +92,148 @@ public class ExerciseService {
         return feedback;
     }
 
-    private FeedbackResponse checkFindAndCount(Exercise exercise, AnswerRequest request) {
-        try {
-            FindAndCountConfig config = objectMapper.readValue(
-                    exercise.getConfig(), FindAndCountConfig.class);
+    private FeedbackResponse checkFindAndCount(Exercise exercise,
+                                               ExerciseVersion version,
+                                               AnswerRequest request) {
+        FindAndCountConfig config = parseConfig(version.getConfig(), FindAndCountConfig.class);
 
-            int maxAttempts = exercise.getMaxAttempts();
-            int currentAttempt = request.getAttemptNumber();
+        int maxAttempts = exercise.getMaxAttempts() != null ? exercise.getMaxAttempts() : 0;
+        int currentAttempt = request.getAttemptNumber();
 
-            boolean isCorrectThisTime = false;
+        List<TargetResult> results = new ArrayList<>();
+        int correctCount = 0;
 
-            List<TargetResult> results = new ArrayList<>();
-            int correctCount = 0;
+        for (FindAndCountConfig.Target target : config.getTargets()) {
+            AnswerRequest.TargetAnswer given = request.getAnswers()
+                    .stream()
+                    .filter(a -> a.getTargetId().equals(target.getId()))
+                    .findFirst()
+                    .orElse(null);
 
-            for (FindAndCountConfig.Target target : config.getTargets()) {
-                AnswerRequest.TargetAnswer given = request.getAnswers()
-                        .stream()
-                        .filter(a -> a.getTargetId().equals(target.getId()))
-                        .findFirst()
-                        .orElse(null);
+            int givenValue = given != null ? given.getValue() : -1;
+            boolean isCorrect = givenValue == target.getCorrect();
+            if (isCorrect) correctCount++;
 
-                int givenValue = given != null ? given.getValue() : -1;
-                boolean isCorrect = givenValue == target.getCorrect();
-                if (isCorrect) correctCount++;
-
-                results.add(TargetResult.builder()
-                        .targetId(target.getId())
-                        .label(target.getLabel())
-                        .correct(isCorrect)
-                        .givenValue(givenValue)
-                        .build());
-            }
-
-            int total = config.getTargets().size();
-            boolean allCorrect = correctCount == total;
-
-            boolean attemptsExhausted = !allCorrect && maxAttempts > 0 && currentAttempt >= maxAttempts;
-
-            if (attemptsExhausted) {
-                for (TargetResult r : results) {
-                    config.getTargets().stream()
-                            .filter(t -> t.getId().equals(r.getTargetId()))
-                            .findFirst()
-                            .ifPresent(t -> r.setCorrectValue(t.getCorrect()));
-                }
-            }
-
-            boolean showHint = !allCorrect && !attemptsExhausted && currentAttempt < maxAttempts;
-            boolean showExplanation = allCorrect || attemptsExhausted;
-
-            String message;
-            if (allCorrect) {
-                message = "Felicitari! Ai numarat corect tot!";
-            } else if (attemptsExhausted) {
-                message = "Ai epuizat incercarile. Iata raspunsurile corecte!";
-            } else {
-                message = correctCount + " din " + total + " corecte. Mai incearca!";
-            }
-
-            return FeedbackResponse.builder()
-                    .correct(allCorrect)
-                    .message(message)
-                    .hint(showHint ? exercise.getHint() : null)
-                    .explanation(showExplanation ? exercise.getExplanation() : null)
-                    .pointsEarned(allCorrect ? exercise.getPoints() : 0)
-                    .showHint(showHint)
-                    .showExplanation(showExplanation)
-                    .targetResults(results)
-                    .correctTargets(correctCount)
-                    .totalTargets(total)
-                    .attemptsExhausted(attemptsExhausted)
-                    .build();
-
-        } catch (Exception e) {
-            throw new RuntimeException("Eroare la procesarea exercitiului: " + e.getMessage());
+            results.add(TargetResult.builder()
+                    .targetId(target.getId())
+                    .label(target.getLabel())
+                    .correct(isCorrect)
+                    .givenValue(givenValue)
+                    .build());
         }
+
+        int total = config.getTargets().size();
+        boolean allCorrect = correctCount == total;
+        boolean attemptsExhausted = !allCorrect && maxAttempts > 0 && currentAttempt >= maxAttempts;
+
+        if (attemptsExhausted) {
+            for (TargetResult r : results) {
+                config.getTargets().stream()
+                        .filter(t -> t.getId().equals(r.getTargetId()))
+                        .findFirst()
+                        .ifPresent(t -> r.setCorrectValue(t.getCorrect()));
+            }
+        }
+
+        String hintText = selectHint(config.getHints(), currentAttempt, allCorrect, attemptsExhausted);
+        boolean showHint = hintText != null;
+        boolean showExplanation = allCorrect || attemptsExhausted;
+
+        String message;
+        if (allCorrect) {
+            message = "Felicitari! Ai numarat corect tot!";
+        } else if (attemptsExhausted) {
+            message = "Ai epuizat incercarile. Iata raspunsurile corecte!";
+        } else {
+            message = correctCount + " din " + total + " corecte. Mai incearca!";
+        }
+
+        return FeedbackResponse.builder()
+                .correct(allCorrect)
+                .message(message)
+                .hint(hintText)
+                .explanation(showExplanation ? config.getExplanation() : null)
+                .pointsEarned(allCorrect ? exercise.getPoints() : 0)
+                .showHint(showHint)
+                .showExplanation(showExplanation)
+                .targetResults(results)
+                .correctTargets(correctCount)
+                .totalTargets(total)
+                .attemptsExhausted(attemptsExhausted)
+                .build();
     }
 
-    private FeedbackResponse checkSimple(Exercise exercise, AnswerRequest request) {
-        boolean isCorrect = exercise.getCorrectAnswer() != null &&
-                exercise.getCorrectAnswer().trim()
-                        .equalsIgnoreCase(
-                                request.getSimpleAnswer() != null
-                                        ? request.getSimpleAnswer().trim()
-                                        : "");
+    private FeedbackResponse checkSimple(Exercise exercise,
+                                         ExerciseVersion version,
+                                         AnswerRequest request) {
+        SimpleAnswerConfig config = parseConfig(version.getConfig(), SimpleAnswerConfig.class);
 
-        boolean showHint = !isCorrect
-                && exercise.getHint() != null
-                && request.getAttemptNumber() >= 2;
+        String userAnswer = request.getSimpleAnswer() != null
+                ? request.getSimpleAnswer().trim()
+                : "";
 
-        boolean showExplanation = isCorrect
-                || (exercise.getMaxAttempts() > 0
-                && request.getAttemptNumber() >= exercise.getMaxAttempts());
+        boolean isCorrect = matchesAnswer(userAnswer, config);
+
+        int maxAttempts = exercise.getMaxAttempts() != null ? exercise.getMaxAttempts() : 0;
+        int currentAttempt = request.getAttemptNumber();
+        boolean attemptsExhausted = !isCorrect && maxAttempts > 0 && currentAttempt >= maxAttempts;
+
+        String hintText = selectHint(config.getHints(), currentAttempt, isCorrect, attemptsExhausted);
+        boolean showHint = hintText != null;
+        boolean showExplanation = isCorrect || attemptsExhausted;
+
+        String message;
+        if (isCorrect) {
+            message = "Corect! Bravo!";
+        } else if (attemptsExhausted) {
+            message = "Ai epuizat incercarile. Raspunsul corect era: " + config.getCorrectAnswer();
+        } else {
+            message = "Raspuns gresit. Mai incearca!";
+        }
 
         return FeedbackResponse.builder()
                 .correct(isCorrect)
-                .message(isCorrect ? "Corect! Bravo!" : "Raspuns gresit. Mai incearca!")
-                .hint(showHint ? exercise.getHint() : null)
-                .explanation(showExplanation ? exercise.getExplanation() : null)
+                .message(message)
+                .hint(hintText)
+                .explanation(showExplanation ? config.getExplanation() : null)
                 .pointsEarned(isCorrect ? exercise.getPoints() : 0)
                 .showHint(showHint)
                 .showExplanation(showExplanation)
                 .build();
+    }
+
+
+    private String selectHint(List<HintConfig> hints,
+                              int currentAttempt,
+                              boolean isCorrect,
+                              boolean attemptsExhausted) {
+        if (hints == null || hints.isEmpty()) return null;
+        if (isCorrect || attemptsExhausted) return null;
+
+        return hints.stream()
+                .filter(h -> currentAttempt >= h.getAfterAttempt())
+                .max(Comparator.comparingInt(HintConfig::getAfterAttempt))
+                .map(HintConfig::getText)
+                .orElse(null);
+    }
+
+    private boolean matchesAnswer(String userAnswer, SimpleAnswerConfig config) {
+        if (config.getCorrectAnswer() != null
+                && config.getCorrectAnswer().trim().equalsIgnoreCase(userAnswer)) {
+            return true;
+        }
+        if (config.getAlternativeAnswers() != null) {
+            return config.getAlternativeAnswers().stream()
+                    .anyMatch(alt -> alt != null && alt.trim().equalsIgnoreCase(userAnswer));
+        }
+        return false;
+    }
+
+    private <T> T parseConfig(String json, Class<T> type) {
+        try {
+            return objectMapper.readValue(json, type);
+        } catch (Exception e) {
+            throw new RuntimeException("Eroare la procesarea configuratiei exercitiului: " + e.getMessage());
+        }
     }
 }

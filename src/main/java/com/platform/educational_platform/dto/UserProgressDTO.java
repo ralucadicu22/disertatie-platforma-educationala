@@ -16,7 +16,6 @@ public class UserProgressDTO {
     private Long userId;
     private String userName;
     private Long exerciseId;
-    private String exerciseQuestion;
     private Boolean correct;
     private Integer attemptNumber;
     private Integer pointsEarned;

@@ -42,6 +42,36 @@ public class SecurityConfig {
                         .requestMatchers("/api/auth/**").permitAll()
 
 
+                                .requestMatchers(HttpMethod.GET, "/api/exercises/*/versions")
+                                .hasAnyAuthority("EDITOR", "ADMIN")
+                                .requestMatchers(HttpMethod.POST, "/api/exercises/*/versions")
+                                .hasAnyAuthority("EDITOR", "ADMIN")
+
+
+                                .requestMatchers(HttpMethod.POST, "/api/exercises/versions/*/submit-for-review")
+                                .hasAnyAuthority("EDITOR", "ADMIN")
+
+
+                                .requestMatchers(HttpMethod.POST, "/api/exercises/versions/*/approve")
+                                .hasAuthority("ADMIN")
+                                .requestMatchers(HttpMethod.POST, "/api/exercises/versions/*/reject")
+                                .hasAuthority("ADMIN")
+
+
+                                .requestMatchers(HttpMethod.GET, "/api/exercises/versions/pending-review")
+                                .hasAuthority("ADMIN")
+
+
+                                .requestMatchers(HttpMethod.POST, "/api/exercises/versions/*/publish")
+                                .hasAuthority("ADMIN")
+                                .requestMatchers(HttpMethod.POST, "/api/exercises/versions/*/archive")
+                                .hasAuthority("ADMIN")
+
+
+                        .requestMatchers(HttpMethod.POST, "/api/exercises/submit")
+                        .hasAuthority("ELEV")
+
+
                         .requestMatchers(HttpMethod.GET, "/api/modules/**")
                         .hasAnyAuthority("ELEV", "PROFESOR", "EDITOR", "ADMIN")
                         .requestMatchers(HttpMethod.GET, "/api/quizzes/**")
@@ -50,46 +80,29 @@ public class SecurityConfig {
                         .hasAnyAuthority("ELEV", "PROFESOR", "EDITOR", "ADMIN")
 
 
-                        .requestMatchers(HttpMethod.POST, "/api/exercises/submit")
-                        .hasAuthority("ELEV")
+                        .requestMatchers(HttpMethod.POST, "/api/modules/**").hasAnyAuthority("EDITOR", "ADMIN")
+                        .requestMatchers(HttpMethod.PUT, "/api/modules/**").hasAnyAuthority("EDITOR", "ADMIN")
+                        .requestMatchers(HttpMethod.DELETE, "/api/modules/**").hasAnyAuthority("EDITOR", "ADMIN")
 
+                        .requestMatchers(HttpMethod.POST, "/api/quizzes/**").hasAnyAuthority("EDITOR", "ADMIN")
+                        .requestMatchers(HttpMethod.PUT, "/api/quizzes/**").hasAnyAuthority("EDITOR", "ADMIN")
+                        .requestMatchers(HttpMethod.DELETE, "/api/quizzes/**").hasAnyAuthority("EDITOR", "ADMIN")
 
-                        .requestMatchers(HttpMethod.POST, "/api/modules/**")
-                        .hasAnyAuthority("EDITOR", "ADMIN")
-                        .requestMatchers(HttpMethod.PUT, "/api/modules/**")
-                        .hasAnyAuthority("EDITOR", "ADMIN")
-                        .requestMatchers(HttpMethod.DELETE, "/api/modules/**")
-                        .hasAnyAuthority("EDITOR", "ADMIN")
+                        .requestMatchers(HttpMethod.POST, "/api/exercises/**").hasAnyAuthority("EDITOR", "ADMIN")
+                        .requestMatchers(HttpMethod.PUT, "/api/exercises/**").hasAnyAuthority("EDITOR", "ADMIN")
+                        .requestMatchers(HttpMethod.DELETE, "/api/exercises/**").hasAnyAuthority("EDITOR", "ADMIN")
 
-                        .requestMatchers(HttpMethod.POST, "/api/quizzes/**")
-                        .hasAnyAuthority("EDITOR", "ADMIN")
-                        .requestMatchers(HttpMethod.PUT, "/api/quizzes/**")
-                        .hasAnyAuthority("EDITOR", "ADMIN")
-                        .requestMatchers(HttpMethod.DELETE, "/api/quizzes/**")
-                        .hasAnyAuthority("EDITOR", "ADMIN")
-
-                        .requestMatchers(HttpMethod.POST, "/api/exercises/**")
-                        .hasAnyAuthority("EDITOR", "ADMIN")
-                        .requestMatchers(HttpMethod.PUT, "/api/exercises/**")
-                        .hasAnyAuthority("EDITOR", "ADMIN")
-                        .requestMatchers(HttpMethod.DELETE, "/api/exercises/**")
-                        .hasAnyAuthority("EDITOR", "ADMIN")
-
-                        .requestMatchers("/api/teacher/**")
-                        .hasAnyAuthority("PROFESOR", "ADMIN")
-                        .requestMatchers("/api/editor/**")
-                        .hasAnyAuthority("EDITOR", "ADMIN")
-                        .requestMatchers("/api/admin/**")
-                        .hasAuthority("ADMIN")
 
                         .requestMatchers(HttpMethod.GET, "/api/products/**")
                         .hasAnyAuthority("ELEV", "PROFESOR", "EDITOR", "ADMIN")
-                        .requestMatchers(HttpMethod.POST, "/api/products/**")
-                        .hasAnyAuthority("EDITOR", "ADMIN")
-                        .requestMatchers(HttpMethod.PUT, "/api/products/**")
-                        .hasAnyAuthority("EDITOR", "ADMIN")
-                        .requestMatchers(HttpMethod.DELETE, "/api/products/**")
-                        .hasAnyAuthority("EDITOR", "ADMIN")
+                        .requestMatchers(HttpMethod.POST, "/api/products/**").hasAnyAuthority("EDITOR", "ADMIN")
+                        .requestMatchers(HttpMethod.PUT, "/api/products/**").hasAnyAuthority("EDITOR", "ADMIN")
+                        .requestMatchers(HttpMethod.DELETE, "/api/products/**").hasAnyAuthority("EDITOR", "ADMIN")
+
+
+                        .requestMatchers("/api/teacher/**").hasAnyAuthority("PROFESOR", "ADMIN")
+                        .requestMatchers("/api/editor/**").hasAnyAuthority("EDITOR", "ADMIN")
+                        .requestMatchers("/api/admin/**").hasAuthority("ADMIN")
 
                         .anyRequest().authenticated()
                 )

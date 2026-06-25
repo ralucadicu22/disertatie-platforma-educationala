@@ -12,13 +12,9 @@ import lombok.NoArgsConstructor;
 public class ExerciseDTO {
     private Long id;
     private String type;
-    private String questionText;
-    private String imageUrl;
     private String config;
-    private String hint;
     private Integer points;
     private String difficulty;
     private Integer orderIndex;
-    private String correctAnswer;
     private Integer maxAttempts;
 }

@@ -10,6 +10,7 @@ import com.platform.educational_platform.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
+
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -78,7 +79,6 @@ public class UserProgressService {
                 .userId(up.getUser().getId())
                 .userName(up.getUser().getName())
                 .exerciseId(up.getExercise().getId())
-                .exerciseQuestion(up.getExercise().getQuestionText())
                 .correct(up.getCorrect())
                 .attemptNumber(up.getAttemptNumber())
                 .pointsEarned(up.getPointsEarned())

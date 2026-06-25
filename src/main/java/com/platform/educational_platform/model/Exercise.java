@@ -1,4 +1,6 @@
-package com.platform.educational_platform.model;import jakarta.persistence.*;
+package com.platform.educational_platform.model;
+
+import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -7,7 +9,8 @@ import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
 import java.time.LocalDateTime;
-
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
 @Table(name = "exercise")
@@ -28,29 +31,18 @@ public class Exercise {
     @Column(nullable = false)
     private String type;
 
-    @Column(columnDefinition = "TEXT", nullable = false)
-    private String questionText;
-
-    private String imageUrl;
-
-    @Column(columnDefinition = "TEXT")
-    private String config;
-
-    @Column(columnDefinition = "TEXT")
-    private String hint;
-
-    @Column(columnDefinition = "TEXT")
-    private String explanation;
-
     @Column(nullable = false)
+    @Builder.Default
     private Integer points = 10;
 
     private String difficulty;
 
     @Column(nullable = false)
+    @Builder.Default
     private Integer orderIndex = 0;
 
     @Column(nullable = false)
+    @Builder.Default
     private Integer maxAttempts = 0;
 
     @CreationTimestamp
@@ -58,5 +50,12 @@ public class Exercise {
 
     @UpdateTimestamp
     private LocalDateTime updatedAt;
-    private String correctAnswer;
+
+    @OneToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "current_version_id")
+    private ExerciseVersion currentVersion;
+
+    @OneToMany(mappedBy = "exercise", cascade = CascadeType.ALL, orphanRemoval = true)
+    @Builder.Default
+    private List<ExerciseVersion> versions = new ArrayList<>();
 }
