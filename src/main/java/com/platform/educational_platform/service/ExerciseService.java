@@ -14,6 +14,8 @@ import com.platform.educational_platform.model.enums.VersionStatus;
 import com.platform.educational_platform.repository.ExerciseRepository;
 import com.platform.educational_platform.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import tools.jackson.databind.ObjectMapper;
 
@@ -33,8 +35,14 @@ public class ExerciseService {
 
 
     public List<ExerciseDTO> getExercisesByQuiz(Long quizId) {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        boolean isEditorOrAdmin = auth.getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals("EDITOR") || a.getAuthority().equals("ADMIN"));
+
         return exerciseRepository.findByQuizIdOrderByOrderIndexAsc(quizId)
                 .stream()
+                .filter(e -> isEditorOrAdmin || (e.getCurrentVersion() != null
+                        && e.getCurrentVersion().getStatus() == VersionStatus.PUBLISHED))
                 .map(this::toDTO)
                 .collect(Collectors.toList());
     }
@@ -47,21 +55,21 @@ public class ExerciseService {
 
     private ExerciseDTO toDTO(Exercise e) {
         ExerciseVersion active = e.getCurrentVersion();
-        if (active == null || active.getStatus() != VersionStatus.PUBLISHED) {
-            throw new RuntimeException("Exercitiul nu are o versiune publicata");
+        String config = null;
+        if (active != null && active.getStatus() == VersionStatus.PUBLISHED) {
+            config = active.getConfig();
         }
 
         return ExerciseDTO.builder()
                 .id(e.getId())
                 .type(e.getType())
-                .config(active.getConfig())
+                .config(config)
                 .points(e.getPoints())
                 .difficulty(e.getDifficulty())
                 .orderIndex(e.getOrderIndex())
                 .maxAttempts(e.getMaxAttempts())
                 .build();
     }
-
 
 
     public FeedbackResponse checkAnswer(AnswerRequest request, String userEmail) {

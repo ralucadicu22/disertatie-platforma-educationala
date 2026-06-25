@@ -66,7 +66,21 @@ public class SecurityConfig {
                                 .hasAuthority("ADMIN")
                                 .requestMatchers(HttpMethod.POST, "/api/exercises/versions/*/archive")
                                 .hasAuthority("ADMIN")
+                                .requestMatchers(HttpMethod.POST, "/api/exercises/versions/*/duplicate")
+                                .hasAnyAuthority("EDITOR", "ADMIN")
 
+
+                                .requestMatchers(HttpMethod.POST, "/api/exercises/versions/*/template")
+                                .hasAuthority("ADMIN")
+                                .requestMatchers(HttpMethod.DELETE, "/api/exercises/versions/*/template")
+                                .hasAuthority("ADMIN")
+
+                                .requestMatchers(HttpMethod.GET, "/api/exercises/versions/templates")
+                                .hasAnyAuthority("EDITOR", "ADMIN")
+
+
+                                .requestMatchers(HttpMethod.POST, "/api/exercises/from-template")
+                                .hasAnyAuthority("EDITOR", "ADMIN")
 
                         .requestMatchers(HttpMethod.POST, "/api/exercises/submit")
                         .hasAuthority("ELEV")

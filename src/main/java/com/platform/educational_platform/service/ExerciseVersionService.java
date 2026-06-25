@@ -1,19 +1,23 @@
 package com.platform.educational_platform.service;
 
+import com.platform.educational_platform.dto.exercise.CreateFromTemplateRequest;
 import com.platform.educational_platform.dto.exercise.CreateVersionRequest;
 import com.platform.educational_platform.dto.exercise.ExerciseVersionDTO;
 import com.platform.educational_platform.dto.exercise.ReviewActionRequest;
 import com.platform.educational_platform.model.Exercise;
 import com.platform.educational_platform.model.ExerciseVersion;
+import com.platform.educational_platform.model.Quiz;
 import com.platform.educational_platform.model.User;
 import com.platform.educational_platform.model.enums.VersionStatus;
 import com.platform.educational_platform.repository.ExerciseRepository;
 import com.platform.educational_platform.repository.ExerciseVersionRepository;
+import com.platform.educational_platform.repository.QuizRepository;
 import com.platform.educational_platform.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import tools.jackson.databind.ObjectMapper;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -26,6 +30,8 @@ public class ExerciseVersionService {
     private final ExerciseVersionRepository versionRepo;
     private final ExerciseRepository exerciseRepo;
     private final UserRepository userRepo;
+    private final ObjectMapper objectMapper;
+    private final QuizRepository quizRepo;
 
     public List<ExerciseVersionDTO> listVersions(Long exerciseId) {
         return versionRepo.findByExerciseIdOrderByVersionNumberDesc(exerciseId)
@@ -182,6 +188,94 @@ public class ExerciseVersionService {
         return toDTO(v);
     }
 
+    @Transactional
+    public ExerciseVersionDTO duplicate(Long versionId, String userEmail) {
+        ExerciseVersion source = versionRepo.findById(versionId)
+                .orElseThrow(() -> new RuntimeException("Versiunea sursa nu exista"));
+
+        User creator = userRepo.findByEmail(userEmail)
+                .orElseThrow(() -> new RuntimeException("Utilizator inexistent"));
+
+        Integer nextVersion = versionRepo.findMaxVersionNumber(source.getExercise().getId()) + 1;
+
+        ExerciseVersion copy = ExerciseVersion.builder()
+                .exercise(source.getExercise())
+                .versionNumber(nextVersion)
+                .config(source.getConfig())
+                .status(VersionStatus.DRAFT)
+                .createdBy(creator)
+                .changeNote("Duplicat din versiunea " + source.getVersionNumber())
+                .isTemplate(false)
+                .build();
+
+        return toDTO(versionRepo.save(copy));
+    }
+
+
+    @Transactional
+    public ExerciseVersionDTO setTemplate(Long versionId, boolean isTemplate) {
+        ExerciseVersion v = versionRepo.findById(versionId)
+                .orElseThrow(() -> new RuntimeException("Versiunea nu exista"));
+
+        if (isTemplate && v.getStatus() != VersionStatus.PUBLISHED) {
+            throw new RuntimeException("Doar versiunile PUBLISHED pot fi marcate ca template");
+        }
+
+        v.setIsTemplate(isTemplate);
+        return toDTO(versionRepo.save(v));
+    }
+
+
+    public List<ExerciseVersionDTO> listTemplates() {
+        return versionRepo.findByIsTemplateTrueOrderByCreatedAtDesc()
+                .stream()
+                .map(this::toDTO)
+                .collect(Collectors.toList());
+    }
+
+
+    @Transactional
+    public ExerciseVersionDTO createFromTemplate(CreateFromTemplateRequest req, String userEmail) {
+        ExerciseVersion template = versionRepo.findById(req.getTemplateVersionId())
+                .orElseThrow(() -> new RuntimeException("Template-ul nu exista"));
+
+        if (!Boolean.TRUE.equals(template.getIsTemplate())) {
+            throw new RuntimeException("Versiunea sursa nu este marcata ca template");
+        }
+
+        User creator = userRepo.findByEmail(userEmail)
+                .orElseThrow(() -> new RuntimeException("Utilizator inexistent"));
+
+        Quiz quiz = quizRepo.findById(req.getQuizId())
+                .orElseThrow(() -> new RuntimeException("Quiz-ul destinatie nu exista"));
+
+
+        Exercise sourceExercise = template.getExercise();
+        Exercise newExercise = Exercise.builder()
+                .type(sourceExercise.getType())
+                .points(sourceExercise.getPoints())
+                .difficulty(sourceExercise.getDifficulty())
+                .orderIndex(0)  // se reordoneaza ulterior daca e cazul
+                .maxAttempts(sourceExercise.getMaxAttempts())
+                .quiz(quiz)
+                .build();
+        newExercise = exerciseRepo.save(newExercise);
+
+
+        ExerciseVersion v1 = ExerciseVersion.builder()
+                .exercise(newExercise)
+                .versionNumber(1)
+                .config(template.getConfig())
+                .status(VersionStatus.DRAFT)
+                .createdBy(creator)
+                .changeNote(req.getChangeNote() != null
+                        ? req.getChangeNote()
+                        : "Creat din template (versiunea " + template.getVersionNumber() + ")")
+                .isTemplate(false)
+                .build();
+
+        return toDTO(versionRepo.save(v1));
+    }
     private ExerciseVersionDTO toDTO(ExerciseVersion v) {
         return ExerciseVersionDTO.builder()
                 .id(v.getId())
@@ -197,6 +291,7 @@ public class ExerciseVersionService {
                 .reviewedByName(v.getReviewedBy() != null ? v.getReviewedBy().getName() : null)
                 .reviewedAt(v.getReviewedAt())
                 .reviewNote(v.getReviewNote())
+                .isTemplate(v.getIsTemplate())
                 .build();
     }
 }

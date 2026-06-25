@@ -57,6 +57,10 @@ public class ExerciseVersion {
     @Column(length = 500)
     private String reviewNote;
 
+    @Column(nullable = false)
+    @Builder.Default
+    private Boolean isTemplate = false;
+
     @PrePersist
     protected void onCreate() {
         if (createdAt == null) createdAt = LocalDateTime.now();

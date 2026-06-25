@@ -1,5 +1,6 @@
 package com.platform.educational_platform.controller;
 
+import com.platform.educational_platform.dto.exercise.CreateFromTemplateRequest;
 import com.platform.educational_platform.dto.exercise.CreateVersionRequest;
 import com.platform.educational_platform.dto.exercise.ExerciseVersionDTO;
 import com.platform.educational_platform.dto.exercise.ReviewActionRequest;
@@ -71,5 +72,34 @@ public class ExerciseVersionController {
     @PostMapping("/versions/{versionId}/archive")
     public ResponseEntity<ExerciseVersionDTO> archive(@PathVariable Long versionId) {
         return ResponseEntity.ok(versionService.archive(versionId));
+    }
+
+    @PostMapping("/versions/{versionId}/duplicate")
+    public ResponseEntity<ExerciseVersionDTO> duplicate(
+            @PathVariable Long versionId,
+            Authentication authentication) {
+        return ResponseEntity.ok(versionService.duplicate(versionId, authentication.getName()));
+    }
+
+    @PostMapping("/versions/{versionId}/template")
+    public ResponseEntity<ExerciseVersionDTO> markAsTemplate(@PathVariable Long versionId) {
+        return ResponseEntity.ok(versionService.setTemplate(versionId, true));
+    }
+
+    @DeleteMapping("/versions/{versionId}/template")
+    public ResponseEntity<ExerciseVersionDTO> unmarkAsTemplate(@PathVariable Long versionId) {
+        return ResponseEntity.ok(versionService.setTemplate(versionId, false));
+    }
+
+    @GetMapping("/versions/templates")
+    public ResponseEntity<List<ExerciseVersionDTO>> listTemplates() {
+        return ResponseEntity.ok(versionService.listTemplates());
+    }
+
+    @PostMapping("/from-template")
+    public ResponseEntity<ExerciseVersionDTO> createFromTemplate(
+            @RequestBody CreateFromTemplateRequest req,
+            Authentication authentication) {
+        return ResponseEntity.ok(versionService.createFromTemplate(req, authentication.getName()));
     }
 }

@@ -20,4 +20,5 @@ public interface ExerciseVersionRepository extends JpaRepository<ExerciseVersion
 
     List<ExerciseVersion> findByStatus(VersionStatus status);
     List<ExerciseVersion> findByStatusOrderByCreatedAtAsc(VersionStatus status);
+    List<ExerciseVersion> findByIsTemplateTrueOrderByCreatedAtDesc();
 }

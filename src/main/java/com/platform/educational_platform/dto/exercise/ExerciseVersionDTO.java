@@ -27,4 +27,5 @@ public class ExerciseVersionDTO {
     private String reviewedByName;
     private LocalDateTime reviewedAt;
     private String reviewNote;
+    private Boolean isTemplate;
 }
