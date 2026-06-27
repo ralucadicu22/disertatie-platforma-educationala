@@ -1,8 +1,8 @@
 package com.platform.educational_platform.service;
 
-import com.platform.educational_platform.dto.exercise.CreateFromTemplateRequest;
-import com.platform.educational_platform.dto.exercise.CreateVersionRequest;
-import com.platform.educational_platform.dto.exercise.ExerciseVersionDTO;
+import com.platform.educational_platform.dto.exercise.version.CreateFromTemplateRequest;
+import com.platform.educational_platform.dto.exercise.version.CreateVersionRequest;
+import com.platform.educational_platform.dto.exercise.version.ExerciseVersionDTO;
 import com.platform.educational_platform.dto.exercise.ReviewActionRequest;
 import com.platform.educational_platform.model.Exercise;
 import com.platform.educational_platform.model.ExerciseVersion;
@@ -14,7 +14,6 @@ import com.platform.educational_platform.repository.ExerciseVersionRepository;
 import com.platform.educational_platform.repository.QuizRepository;
 import com.platform.educational_platform.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import tools.jackson.databind.ObjectMapper;

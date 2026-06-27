@@ -1,4 +1,4 @@
-package com.platform.educational_platform.dto.exercise;
+package com.platform.educational_platform.dto.exercise.version;
 
 import com.platform.educational_platform.model.enums.VersionStatus;
 import lombok.AllArgsConstructor;

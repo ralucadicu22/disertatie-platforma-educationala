@@ -1,5 +1,6 @@
 package com.platform.educational_platform.model;
 
+import com.platform.educational_platform.model.enums.GradeLevel;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -10,7 +11,9 @@ import org.hibernate.annotations.UpdateTimestamp;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 @Entity
 @Table(name = "exercise")
@@ -44,6 +47,20 @@ public class Exercise {
     @Column(nullable = false)
     @Builder.Default
     private Integer maxAttempts = 0;
+
+    private String topic;
+
+    @Enumerated(EnumType.STRING)
+    private GradeLevel gradeLevel;
+
+    @ManyToMany(fetch = FetchType.LAZY)
+    @JoinTable(
+            name = "exercise_tags",
+            joinColumns = @JoinColumn(name = "exercise_id"),
+            inverseJoinColumns = @JoinColumn(name = "tag_id")
+    )
+    @Builder.Default
+    private Set<Tag> tags = new HashSet<>();
 
     @CreationTimestamp
     private LocalDateTime createdAt;

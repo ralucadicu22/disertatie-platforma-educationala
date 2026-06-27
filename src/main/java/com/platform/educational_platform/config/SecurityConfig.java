@@ -94,6 +94,17 @@ public class SecurityConfig {
                         .hasAnyAuthority("ELEV", "PROFESOR", "EDITOR", "ADMIN")
 
 
+                                .requestMatchers(HttpMethod.GET, "/api/exercises/filter")
+                                .hasAnyAuthority("EDITOR", "ADMIN")
+
+
+                                .requestMatchers(HttpMethod.PUT, "/api/exercises/*/metadata")
+                                .hasAnyAuthority("EDITOR", "ADMIN")
+
+                        .requestMatchers(HttpMethod.GET, "/api/tags").hasAnyAuthority("EDITOR", "ADMIN")
+                        .requestMatchers(HttpMethod.POST, "/api/tags").hasAuthority("ADMIN")
+                        .requestMatchers(HttpMethod.DELETE, "/api/tags/**").hasAuthority("ADMIN")
+
                         .requestMatchers(HttpMethod.POST, "/api/modules/**").hasAnyAuthority("EDITOR", "ADMIN")
                         .requestMatchers(HttpMethod.PUT, "/api/modules/**").hasAnyAuthority("EDITOR", "ADMIN")
                         .requestMatchers(HttpMethod.DELETE, "/api/modules/**").hasAnyAuthority("EDITOR", "ADMIN")

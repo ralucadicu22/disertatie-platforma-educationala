@@ -7,13 +7,19 @@ import com.platform.educational_platform.dto.config.SimpleAnswerConfig;
 import com.platform.educational_platform.dto.exercise.ExerciseDTO;
 import com.platform.educational_platform.dto.exercise.FeedbackResponse;
 import com.platform.educational_platform.dto.exercise.TargetResult;
+import com.platform.educational_platform.dto.metadata.TagDTO;
+import com.platform.educational_platform.dto.metadata.UpdateExerciseMetadataRequest;
 import com.platform.educational_platform.model.Exercise;
 import com.platform.educational_platform.model.ExerciseVersion;
 import com.platform.educational_platform.model.User;
+import com.platform.educational_platform.model.enums.GradeLevel;
 import com.platform.educational_platform.model.enums.VersionStatus;
 import com.platform.educational_platform.repository.ExerciseRepository;
 import com.platform.educational_platform.repository.UserRepository;
+import com.platform.educational_platform.specification.ExerciseSpecifications;
+import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
@@ -22,6 +28,7 @@ import tools.jackson.databind.ObjectMapper;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @Service
@@ -32,6 +39,7 @@ public class ExerciseService {
     private final ObjectMapper objectMapper;
     private final UserProgressService userProgressService;
     private final UserRepository userRepository;
+    private final TagService tagService;
 
 
     public List<ExerciseDTO> getExercisesByQuiz(Long quizId) {
@@ -53,23 +61,6 @@ public class ExerciseService {
         return toDTO(e);
     }
 
-    private ExerciseDTO toDTO(Exercise e) {
-        ExerciseVersion active = e.getCurrentVersion();
-        String config = null;
-        if (active != null && active.getStatus() == VersionStatus.PUBLISHED) {
-            config = active.getConfig();
-        }
-
-        return ExerciseDTO.builder()
-                .id(e.getId())
-                .type(e.getType())
-                .config(config)
-                .points(e.getPoints())
-                .difficulty(e.getDifficulty())
-                .orderIndex(e.getOrderIndex())
-                .maxAttempts(e.getMaxAttempts())
-                .build();
-    }
 
 
     public FeedbackResponse checkAnswer(AnswerRequest request, String userEmail) {
@@ -244,4 +235,69 @@ public class ExerciseService {
             throw new RuntimeException("Eroare la procesarea configuratiei exercitiului: " + e.getMessage());
         }
     }
+
+    public List<ExerciseDTO> filter(String type, String difficulty, String topic,
+                                    GradeLevel gradeLevel, Long tagId, VersionStatus status) {
+        Specification<Exercise> spec = Specification.allOf(
+                ExerciseSpecifications.hasType(type),
+                ExerciseSpecifications.hasDifficulty(difficulty),
+                ExerciseSpecifications.hasTopic(topic),
+                ExerciseSpecifications.hasGradeLevel(gradeLevel),
+                ExerciseSpecifications.hasTagId(tagId),
+                ExerciseSpecifications.hasCurrentVersionStatus(status)
+        );
+
+        return exerciseRepository.findAll(spec)
+                .stream()
+                .map(this::toDTO)
+                .collect(Collectors.toList());
+    }
+
+    @Transactional
+    public ExerciseDTO updateMetadata(Long exerciseId, UpdateExerciseMetadataRequest req) {
+        Exercise exercise = exerciseRepository.findById(exerciseId)
+                .orElseThrow(() -> new RuntimeException("Exercitiul nu exista"));
+
+        if (req.getTopic() != null) exercise.setTopic(req.getTopic());
+        if (req.getGradeLevel() != null) exercise.setGradeLevel(req.getGradeLevel());
+        if (req.getDifficulty() != null) exercise.setDifficulty(req.getDifficulty());
+        if (req.getTagIds() != null) {
+            exercise.setTags(tagService.resolveTagIds(req.getTagIds()));
+        }
+
+        return toDTO(exerciseRepository.save(exercise));
+    }
+    private ExerciseDTO toDTO(Exercise e) {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        boolean isEditorOrAdmin = auth != null && auth.getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals("EDITOR") || a.getAuthority().equals("ADMIN"));
+
+        ExerciseVersion active = e.getCurrentVersion();
+        String config = null;
+        if (active != null && active.getStatus() == VersionStatus.PUBLISHED) {
+            config = active.getConfig();
+        }
+
+        Set<TagDTO> tagDTOs = e.getTags() == null ? null : e.getTags().stream()
+                .map(t -> TagDTO.builder()
+                        .id(t.getId())
+                        .name(t.getName())
+                        .description(t.getDescription())
+                        .build())
+                .collect(Collectors.toSet());
+
+        return ExerciseDTO.builder()
+                .id(e.getId())
+                .type(e.getType())
+                .config(config)
+                .points(e.getPoints())
+                .difficulty(e.getDifficulty())
+                .orderIndex(e.getOrderIndex())
+                .maxAttempts(e.getMaxAttempts())
+                .topic(e.getTopic())
+                .gradeLevel(e.getGradeLevel())
+                .tags(tagDTOs)
+                .build();
+    }
+
 }
