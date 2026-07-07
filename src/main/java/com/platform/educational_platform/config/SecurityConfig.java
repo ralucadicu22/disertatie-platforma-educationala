@@ -82,8 +82,6 @@ public class SecurityConfig {
                                 .requestMatchers(HttpMethod.POST, "/api/exercises/from-template")
                                 .hasAnyAuthority("EDITOR", "ADMIN")
 
-                        .requestMatchers(HttpMethod.POST, "/api/exercises/submit")
-                        .hasAuthority("ELEV")
 
 
                         .requestMatchers(HttpMethod.GET, "/api/modules/**")

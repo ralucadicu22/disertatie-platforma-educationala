@@ -4,6 +4,7 @@ import com.platform.educational_platform.dto.exercise.version.CreateFromTemplate
 import com.platform.educational_platform.dto.exercise.version.CreateVersionRequest;
 import com.platform.educational_platform.dto.exercise.version.ExerciseVersionDTO;
 import com.platform.educational_platform.dto.exercise.ReviewActionRequest;
+import com.platform.educational_platform.dto.exercise.version.SaveDraftRequest;
 import com.platform.educational_platform.model.Exercise;
 import com.platform.educational_platform.model.ExerciseVersion;
 import com.platform.educational_platform.model.Quiz;
@@ -274,6 +275,80 @@ public class ExerciseVersionService {
                 .build();
 
         return toDTO(versionRepo.save(v1));
+    }
+
+    @Transactional
+    public ExerciseVersionDTO createNewExerciseWithDraft(
+            Long quizId, SaveDraftRequest req, String userEmail) {
+        Quiz quiz = quizRepo.findById(quizId)
+                .orElseThrow(() -> new RuntimeException("Quiz-ul nu exista"));
+        User creator = userRepo.findByEmail(userEmail)
+                .orElseThrow(() -> new RuntimeException("Utilizator inexistent"));
+
+        Exercise exercise = Exercise.builder()
+                .type(req.getType() != null ? req.getType() : "CUSTOM")
+                .points(10)
+                .difficulty("MEDIUM")
+                .orderIndex(0)
+                .maxAttempts(3)
+                .quiz(quiz)
+                .build();
+        exercise = exerciseRepo.save(exercise);
+
+        ExerciseVersion v = ExerciseVersion.builder()
+                .exercise(exercise)
+                .versionNumber(1)
+                .config(req.getConfig())
+                .status(VersionStatus.DRAFT)
+                .createdBy(creator)
+                .changeNote(req.getChangeNote())
+                .isTemplate(false)
+                .build();
+
+        return toDTO(versionRepo.save(v));
+    }
+
+    @Transactional
+    public ExerciseVersionDTO upsertDraft(
+            Long exerciseId, SaveDraftRequest req, String userEmail) {
+        Exercise exercise = exerciseRepo.findById(exerciseId)
+                .orElseThrow(() -> new RuntimeException("Exercitiul nu exista"));
+
+        ExerciseVersion draft = versionRepo
+                .findByExerciseIdAndStatus(exerciseId, VersionStatus.DRAFT)
+                .orElse(null);
+
+        if (draft != null) {
+            draft.setConfig(req.getConfig());
+            if (req.getChangeNote() != null) {
+                draft.setChangeNote(req.getChangeNote());
+            }
+            return toDTO(versionRepo.save(draft));
+        }
+
+        User creator = userRepo.findByEmail(userEmail)
+                .orElseThrow(() -> new RuntimeException("Utilizator inexistent"));
+        Integer nextVersion = versionRepo.findMaxVersionNumber(exerciseId) + 1;
+
+        ExerciseVersion v = ExerciseVersion.builder()
+                .exercise(exercise)
+                .versionNumber(nextVersion)
+                .config(req.getConfig())
+                .status(VersionStatus.DRAFT)
+                .createdBy(creator)
+                .changeNote(req.getChangeNote())
+                .isTemplate(false)
+                .build();
+
+        return toDTO(versionRepo.save(v));
+    }
+
+    public ExerciseVersionDTO getCurrentDraft(Long exerciseId) {
+        ExerciseVersion draft = versionRepo
+                .findByExerciseIdAndStatus(exerciseId, VersionStatus.DRAFT)
+                .orElseThrow(() -> new RuntimeException(
+                        "Nu exista draft pentru acest exercitiu"));
+        return toDTO(draft);
     }
     private ExerciseVersionDTO toDTO(ExerciseVersion v) {
         return ExerciseVersionDTO.builder()

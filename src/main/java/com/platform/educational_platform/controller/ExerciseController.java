@@ -1,12 +1,13 @@
 package com.platform.educational_platform.controller;
 
-import com.platform.educational_platform.dto.AnswerRequest;
 import com.platform.educational_platform.dto.exercise.ExerciseDTO;
-import com.platform.educational_platform.dto.exercise.FeedbackResponse;
+import com.platform.educational_platform.dto.exercise.version.ExerciseVersionDTO;
+import com.platform.educational_platform.dto.exercise.version.SaveDraftRequest;
 import com.platform.educational_platform.dto.metadata.UpdateExerciseMetadataRequest;
 import com.platform.educational_platform.model.enums.GradeLevel;
 import com.platform.educational_platform.model.enums.VersionStatus;
 import com.platform.educational_platform.service.ExerciseService;
+import com.platform.educational_platform.service.ExerciseVersionService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
@@ -21,19 +22,13 @@ import java.util.List;
 public class ExerciseController {
 
     private final ExerciseService exerciseService;
+    private final ExerciseVersionService versionService;
 
     @GetMapping("/quiz/{quizId}")
     public ResponseEntity<List<ExerciseDTO>> getExercisesByQuiz(@PathVariable Long quizId) {
         return ResponseEntity.ok(exerciseService.getExercisesByQuiz(quizId));
     }
 
-    @PostMapping("/submit")
-    public ResponseEntity<FeedbackResponse> submitAnswer(
-            @RequestBody AnswerRequest request,
-            Authentication authentication) {
-        String userEmail = (String) authentication.getPrincipal();
-        return ResponseEntity.ok(exerciseService.checkAnswer(request, userEmail));
-    }
     @GetMapping("/{id}")
     public ResponseEntity<ExerciseDTO> getExerciseById(@PathVariable Long id) {
         return ResponseEntity.ok(exerciseService.getExerciseById(id));
@@ -55,6 +50,30 @@ public class ExerciseController {
             @PathVariable Long exerciseId,
             @RequestBody UpdateExerciseMetadataRequest req) {
         return ResponseEntity.ok(exerciseService.updateMetadata(exerciseId, req));
+    }
+
+    @PostMapping("/draft/new")
+    public ResponseEntity<ExerciseVersionDTO> createNewExerciseWithDraft(
+            @RequestParam Long quizId,
+            @RequestBody SaveDraftRequest req,
+            Authentication authentication) {
+        return ResponseEntity.ok(versionService.createNewExerciseWithDraft(
+                quizId, req, authentication.getName()));
+    }
+
+    @PutMapping("/{exerciseId}/draft")
+    public ResponseEntity<ExerciseVersionDTO> upsertDraft(
+            @PathVariable Long exerciseId,
+            @RequestBody SaveDraftRequest req,
+            Authentication authentication) {
+        return ResponseEntity.ok(versionService.upsertDraft(
+                exerciseId, req, authentication.getName()));
+    }
+
+    @GetMapping("/{exerciseId}/draft")
+    public ResponseEntity<ExerciseVersionDTO> getCurrentDraft(
+            @PathVariable Long exerciseId) {
+        return ResponseEntity.ok(versionService.getCurrentDraft(exerciseId));
     }
 
 }
