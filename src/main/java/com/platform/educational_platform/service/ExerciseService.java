@@ -15,6 +15,9 @@ import org.springframework.data.jpa.domain.Specification;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.node.ObjectNode;
 
 import java.util.List;
 import java.util.Set;
@@ -26,6 +29,7 @@ public class ExerciseService {
 
     private final ExerciseRepository exerciseRepository;
     private final TagService tagService;
+    private final ObjectMapper objectMapper;
 
     public List<ExerciseDTO> getExercisesByQuiz(Long quizId) {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
@@ -78,6 +82,25 @@ public class ExerciseService {
         return toDTO(exerciseRepository.save(exercise));
     }
 
+    private String sanitizeConfigForRole(String configJson, boolean isEditorOrAdmin) {
+        if (configJson == null || isEditorOrAdmin) {
+            return configJson;
+        }
+        try {
+            ObjectNode root = (ObjectNode) objectMapper.readTree(configJson);
+            JsonNode solutionNode = root.path("solution");
+            int correctCount = solutionNode.path("correctElementIds").size();
+
+            ObjectNode safeSolution = objectMapper.createObjectNode();
+            safeSolution.put("correctCount", correctCount);
+            root.set("solution", safeSolution);
+
+            return objectMapper.writeValueAsString(root);
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
     private ExerciseDTO toDTO(Exercise e) {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         boolean isEditorOrAdmin = auth != null && auth.getAuthorities().stream()
@@ -86,7 +109,7 @@ public class ExerciseService {
         ExerciseVersion active = e.getCurrentVersion();
         String config = null;
         if (active != null && active.getStatus() == VersionStatus.PUBLISHED) {
-            config = active.getConfig();
+            config = sanitizeConfigForRole(active.getConfig(), isEditorOrAdmin);
         }
 
         Set<TagDTO> tagDTOs = e.getTags() == null ? null : e.getTags().stream()

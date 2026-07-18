@@ -88,6 +88,13 @@ public class SecurityConfig {
                         .hasAnyAuthority("ELEV", "PROFESOR", "EDITOR", "ADMIN")
                         .requestMatchers(HttpMethod.GET, "/api/quizzes/**")
                         .hasAnyAuthority("ELEV", "PROFESOR", "EDITOR", "ADMIN")
+
+                        .requestMatchers(HttpMethod.POST, "/api/exercises/submit")
+                        .hasAnyAuthority("ELEV", "PROFESOR", "EDITOR", "ADMIN")
+
+                        .requestMatchers(HttpMethod.POST, "/api/exercises/check-element")
+                        .hasAnyAuthority("ELEV", "PROFESOR", "EDITOR", "ADMIN")
+
                         .requestMatchers(HttpMethod.GET, "/api/exercises/**")
                         .hasAnyAuthority("ELEV", "PROFESOR", "EDITOR", "ADMIN")
 

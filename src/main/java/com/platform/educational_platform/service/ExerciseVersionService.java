@@ -17,6 +17,7 @@ import com.platform.educational_platform.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
 
 import java.time.LocalDateTime;
@@ -162,6 +163,7 @@ public class ExerciseVersionService {
         v.setReviewNote(req.getReviewNote());
         return toDTO(versionRepo.save(v));
     }
+
     public List<ExerciseVersionDTO> listPendingReview() {
         return versionRepo.findByStatusOrderByCreatedAtAsc(VersionStatus.PENDING_REVIEW)
                 .stream()
@@ -308,11 +310,27 @@ public class ExerciseVersionService {
         return toDTO(versionRepo.save(v));
     }
 
+    private String extractTypeFromConfig(String configJson) {
+        try {
+            JsonNode node = objectMapper.readTree(configJson);
+            JsonNode typeNode = node.path("meta").path("type");
+            return (typeNode.isMissingNode() || typeNode.isNull()) ? null : typeNode.asText();
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
     @Transactional
     public ExerciseVersionDTO upsertDraft(
             Long exerciseId, SaveDraftRequest req, String userEmail) {
         Exercise exercise = exerciseRepo.findById(exerciseId)
                 .orElseThrow(() -> new RuntimeException("Exercitiul nu exista"));
+
+        String typeFromConfig = extractTypeFromConfig(req.getConfig());
+        if (typeFromConfig != null && !typeFromConfig.equals(exercise.getType())) {
+            exercise.setType(typeFromConfig);
+            exerciseRepo.save(exercise);
+        }
 
         ExerciseVersion draft = versionRepo
                 .findByExerciseIdAndStatus(exerciseId, VersionStatus.DRAFT)
@@ -350,6 +368,7 @@ public class ExerciseVersionService {
                         "Nu exista draft pentru acest exercitiu"));
         return toDTO(draft);
     }
+
     private ExerciseVersionDTO toDTO(ExerciseVersion v) {
         return ExerciseVersionDTO.builder()
                 .id(v.getId())

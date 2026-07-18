@@ -18,6 +18,7 @@ public interface UserProgressRepository extends JpaRepository<UserProgress, Long
 
     List<UserProgress> findByExerciseIdOrderBySubmittedAtDesc(Long exerciseId);
 
+    int countByUserIdAndExerciseId(Long userId, Long exerciseId);
 
     @Query("SELECT COUNT(DISTINCT up.exercise.id) FROM UserProgress up " +
             "WHERE up.user.id = :userId AND up.correct = true")

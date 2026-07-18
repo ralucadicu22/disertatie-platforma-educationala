@@ -1,12 +1,17 @@
 package com.platform.educational_platform.controller;
 
 import com.platform.educational_platform.dto.exercise.ExerciseDTO;
+import com.platform.educational_platform.dto.exercise.submission.CheckElementRequest;
+import com.platform.educational_platform.dto.exercise.submission.CheckElementResponse;
+import com.platform.educational_platform.dto.exercise.submission.SubmitAnswerRequest;
+import com.platform.educational_platform.dto.exercise.submission.SubmitAnswerResponse;
 import com.platform.educational_platform.dto.exercise.version.ExerciseVersionDTO;
 import com.platform.educational_platform.dto.exercise.version.SaveDraftRequest;
 import com.platform.educational_platform.dto.metadata.UpdateExerciseMetadataRequest;
 import com.platform.educational_platform.model.enums.GradeLevel;
 import com.platform.educational_platform.model.enums.VersionStatus;
 import com.platform.educational_platform.service.ExerciseService;
+import com.platform.educational_platform.service.ExerciseSubmissionService;
 import com.platform.educational_platform.service.ExerciseVersionService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -23,6 +28,7 @@ public class ExerciseController {
 
     private final ExerciseService exerciseService;
     private final ExerciseVersionService versionService;
+    private final ExerciseSubmissionService submissionService;
 
     @GetMapping("/quiz/{quizId}")
     public ResponseEntity<List<ExerciseDTO>> getExercisesByQuiz(@PathVariable Long quizId) {
@@ -74,6 +80,17 @@ public class ExerciseController {
     public ResponseEntity<ExerciseVersionDTO> getCurrentDraft(
             @PathVariable Long exerciseId) {
         return ResponseEntity.ok(versionService.getCurrentDraft(exerciseId));
+    }
+
+    @PostMapping("/submit")
+    public ResponseEntity<SubmitAnswerResponse> submit(
+            @RequestBody SubmitAnswerRequest req,
+            Authentication authentication) {
+        return ResponseEntity.ok(submissionService.submit(req, authentication.getName()));
+    }
+    @PostMapping("/check-element")
+    public ResponseEntity<CheckElementResponse> checkElement(@RequestBody CheckElementRequest req) {
+        return ResponseEntity.ok(submissionService.checkElement(req));
     }
 
 }
