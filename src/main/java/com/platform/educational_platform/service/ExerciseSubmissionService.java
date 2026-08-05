@@ -1,9 +1,6 @@
 package com.platform.educational_platform.service;
 
-import com.platform.educational_platform.dto.exercise.submission.CheckElementRequest;
-import com.platform.educational_platform.dto.exercise.submission.CheckElementResponse;
-import com.platform.educational_platform.dto.exercise.submission.SubmitAnswerRequest;
-import com.platform.educational_platform.dto.exercise.submission.SubmitAnswerResponse;
+import com.platform.educational_platform.dto.exercise.submission.*;
 import com.platform.educational_platform.model.Exercise;
 import com.platform.educational_platform.model.ExerciseVersion;
 import com.platform.educational_platform.model.User;
@@ -87,6 +84,21 @@ public class ExerciseSubmissionService {
                 .maxAttempts(maxAttempts)
                 .attemptNumber(attemptNumber)
                 .attemptsRemaining(attemptsRemaining)
+                .build();
+    }
+
+    public CheckPlacementResponse checkPlacement(CheckPlacementRequest request) {
+        Exercise exercise = exerciseRepository.findById(request.getExerciseId())
+                .orElseThrow(() -> new RuntimeException("Exercitiul nu exista"));
+
+        JsonNode config = getPublishedConfig(exercise);
+        ExerciseValidator validator = validatorRegistry.getValidator(exercise.getType());
+        boolean correct = validator.isPlacementCorrect(config, request.getDraggableId(), request.getTargetId());
+
+        return CheckPlacementResponse.builder()
+                .draggableId(request.getDraggableId())
+                .targetId(request.getTargetId())
+                .correct(correct)
                 .build();
     }
 }

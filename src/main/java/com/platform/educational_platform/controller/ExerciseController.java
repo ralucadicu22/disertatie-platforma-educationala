@@ -1,10 +1,7 @@
 package com.platform.educational_platform.controller;
 
 import com.platform.educational_platform.dto.exercise.ExerciseDTO;
-import com.platform.educational_platform.dto.exercise.submission.CheckElementRequest;
-import com.platform.educational_platform.dto.exercise.submission.CheckElementResponse;
-import com.platform.educational_platform.dto.exercise.submission.SubmitAnswerRequest;
-import com.platform.educational_platform.dto.exercise.submission.SubmitAnswerResponse;
+import com.platform.educational_platform.dto.exercise.submission.*;
 import com.platform.educational_platform.dto.exercise.version.ExerciseVersionDTO;
 import com.platform.educational_platform.dto.exercise.version.SaveDraftRequest;
 import com.platform.educational_platform.dto.metadata.UpdateExerciseMetadataRequest;
@@ -91,6 +88,10 @@ public class ExerciseController {
     @PostMapping("/check-element")
     public ResponseEntity<CheckElementResponse> checkElement(@RequestBody CheckElementRequest req) {
         return ResponseEntity.ok(submissionService.checkElement(req));
+    }
+    @PostMapping("/check-placement")
+    public ResponseEntity<CheckPlacementResponse> checkPlacement(@RequestBody CheckPlacementRequest req) {
+        return ResponseEntity.ok(submissionService.checkPlacement(req));
     }
 
 }

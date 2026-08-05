@@ -89,7 +89,15 @@ public class ExerciseService {
         try {
             ObjectNode root = (ObjectNode) objectMapper.readTree(configJson);
             JsonNode solutionNode = root.path("solution");
-            int correctCount = solutionNode.path("correctElementIds").size();
+
+            int correctCount;
+            if (solutionNode.has("correctElementIds")) {
+                correctCount = solutionNode.path("correctElementIds").size();
+            } else if (solutionNode.has("dropMapping")) {
+                correctCount = solutionNode.path("dropMapping").size();
+            } else {
+                correctCount = 0;
+            }
 
             ObjectNode safeSolution = objectMapper.createObjectNode();
             safeSolution.put("correctCount", correctCount);

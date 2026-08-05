@@ -12,4 +12,9 @@ public interface ExerciseValidator {
         throw new UnsupportedOperationException(
                 "Acest tip de exercitiu nu suporta verificare per element");
     }
+
+    default boolean isPlacementCorrect(JsonNode config, String draggableId, String targetId) {
+        throw new UnsupportedOperationException(
+                "Acest tip de exercitiu nu suporta verificare de plasare drag & drop");
+    }
 }

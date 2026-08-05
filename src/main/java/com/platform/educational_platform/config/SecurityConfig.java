@@ -37,7 +37,7 @@ public class SecurityConfig {
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .csrf(csrf -> csrf.disable())
                 .authorizeHttpRequests(auth -> auth
-
+                        .requestMatchers("/uploads/**").permitAll()
 
                         .requestMatchers("/api/auth/**").permitAll()
 
@@ -95,6 +95,9 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.POST, "/api/exercises/check-element")
                         .hasAnyAuthority("ELEV", "PROFESOR", "EDITOR", "ADMIN")
 
+                        .requestMatchers(HttpMethod.POST, "/api/exercises/check-placement")
+                        .hasAnyAuthority("ELEV", "PROFESOR", "EDITOR", "ADMIN")
+
                         .requestMatchers(HttpMethod.GET, "/api/exercises/**")
                         .hasAnyAuthority("ELEV", "PROFESOR", "EDITOR", "ADMIN")
 
@@ -133,6 +136,15 @@ public class SecurityConfig {
                         .requestMatchers("/api/teacher/**").hasAnyAuthority("PROFESOR", "ADMIN")
                         .requestMatchers("/api/editor/**").hasAnyAuthority("EDITOR", "ADMIN")
                         .requestMatchers("/api/admin/**").hasAuthority("ADMIN")
+
+
+
+                        .requestMatchers(HttpMethod.GET, "/api/assets")
+                        .hasAnyAuthority("EDITOR", "ADMIN")
+                        .requestMatchers(HttpMethod.POST, "/api/assets/upload")
+                        .hasAnyAuthority("EDITOR", "ADMIN")
+                        .requestMatchers(HttpMethod.DELETE, "/api/assets/**")
+                        .hasAuthority("ADMIN")
 
                         .anyRequest().authenticated()
                 )
