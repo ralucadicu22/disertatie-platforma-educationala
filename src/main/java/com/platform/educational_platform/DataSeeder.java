@@ -53,14 +53,12 @@ public class DataSeeder implements CommandLineRunner {
                     .build());
         }
 
-        // Idempotent: daca produsele exista deja, nu mai facem seed
+
         if (productRepository.count() > 0) {
             System.out.println("Datele exista deja, seed-ul nu se mai ruleaza.");
             return;
         }
 
-        // ===== STRUCTURA MINIMA: Produs → Modul → Quiz =====
-        // Necesara pentru testarea editorului (creare exercitii intr-un quiz existent)
         Product p1 = productRepository.save(Product.builder()
                 .title("Matematica - Clasa Pregatitoare")
                 .description("Exercitii distractive pentru copii de 5-7 ani")

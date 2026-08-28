@@ -18,10 +18,17 @@ public class FileStorageService {
     private String uploadDir;
 
     @Value("${app.upload.max-size-mb:10}")
-    private int maxSizeMb;
+    private int maxImageSizeMb;
 
-    private static final java.util.Set<String> ALLOWED_TYPES = java.util.Set.of(
+    @Value("${app.upload.max-video-size-mb:50}")
+    private int maxVideoSizeMb;
+
+    private static final java.util.Set<String> ALLOWED_IMAGE_TYPES = java.util.Set.of(
             "image/jpeg", "image/png", "image/gif", "image/webp", "image/svg+xml"
+    );
+
+    private static final java.util.Set<String> ALLOWED_VIDEO_TYPES = java.util.Set.of(
+            "video/mp4", "video/webm", "video/ogg"
     );
 
     public String store(MultipartFile file) throws IOException {
@@ -30,11 +37,15 @@ public class FileStorageService {
         }
 
         String mimeType = file.getContentType();
-        if (mimeType == null || !ALLOWED_TYPES.contains(mimeType)) {
+        boolean isImage = mimeType != null && ALLOWED_IMAGE_TYPES.contains(mimeType);
+        boolean isVideo = mimeType != null && ALLOWED_VIDEO_TYPES.contains(mimeType);
+
+        if (!isImage && !isVideo) {
             throw new RuntimeException("Tip de fisier nepermis: " + mimeType +
-                    ". Acceptate: JPEG, PNG, GIF, WebP, SVG");
+                    ". Acceptate: imagini (JPEG, PNG, GIF, WebP, SVG) si video (MP4, WebM, OGG)");
         }
 
+        int maxSizeMb = isVideo ? maxVideoSizeMb : maxImageSizeMb;
         long maxBytes = (long) maxSizeMb * 1024 * 1024;
         if (file.getSize() > maxBytes) {
             throw new RuntimeException("Fisierul depaseste limita de " + maxSizeMb + "MB");
