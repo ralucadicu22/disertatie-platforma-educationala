@@ -30,6 +30,9 @@ public class FileStorageService {
     private static final java.util.Set<String> ALLOWED_VIDEO_TYPES = java.util.Set.of(
             "video/mp4", "video/webm", "video/ogg"
     );
+    private static final java.util.Set<String> ALLOWED_PDF_TYPES = java.util.Set.of(
+            "application/pdf"
+    );
 
     public String store(MultipartFile file) throws IOException {
         if (file.isEmpty()) {
@@ -40,9 +43,11 @@ public class FileStorageService {
         boolean isImage = mimeType != null && ALLOWED_IMAGE_TYPES.contains(mimeType);
         boolean isVideo = mimeType != null && ALLOWED_VIDEO_TYPES.contains(mimeType);
 
-        if (!isImage && !isVideo) {
+        boolean isPdf = mimeType != null && ALLOWED_PDF_TYPES.contains(mimeType);
+
+        if (!isImage && !isVideo && !isPdf) {
             throw new RuntimeException("Tip de fisier nepermis: " + mimeType +
-                    ". Acceptate: imagini (JPEG, PNG, GIF, WebP, SVG) si video (MP4, WebM, OGG)");
+                    ". Acceptate: imagini, video (MP4/WebM/OGG), PDF");
         }
 
         int maxSizeMb = isVideo ? maxVideoSizeMb : maxImageSizeMb;
