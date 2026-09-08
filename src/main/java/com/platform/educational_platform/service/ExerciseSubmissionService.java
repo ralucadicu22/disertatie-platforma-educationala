@@ -3,8 +3,11 @@ package com.platform.educational_platform.service;
 import com.platform.educational_platform.dto.exercise.submission.*;
 import com.platform.educational_platform.model.Exercise;
 import com.platform.educational_platform.model.ExerciseVersion;
+import com.platform.educational_platform.model.QuizAttempt;
 import com.platform.educational_platform.model.User;
+import com.platform.educational_platform.model.enums.QuizAttemptStatus;
 import com.platform.educational_platform.repository.ExerciseRepository;
+import com.platform.educational_platform.repository.QuizAttemptRepository;
 import com.platform.educational_platform.repository.UserProgressRepository;
 import com.platform.educational_platform.repository.UserRepository;
 import com.platform.educational_platform.validation.ExerciseValidator;
@@ -16,6 +19,8 @@ import org.springframework.transaction.annotation.Transactional;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
 
+import java.util.Optional;
+
 @Service
 @RequiredArgsConstructor
 public class ExerciseSubmissionService {
@@ -24,6 +29,7 @@ public class ExerciseSubmissionService {
     private final UserRepository userRepository;
     private final UserProgressRepository userProgressRepository;
     private final UserProgressService userProgressService;
+    private final QuizAttemptRepository quizAttemptRepository;
     private final ExerciseValidatorRegistry validatorRegistry;
     private final ObjectMapper objectMapper;
 
@@ -73,7 +79,15 @@ public class ExerciseSubmissionService {
         int attemptNumber = attemptsUsed + 1;
         int pointsEarned = result.isCorrect() ? exercise.getPoints() : 0;
 
-        userProgressService.recordAttempt(user, exercise, result.isCorrect(), attemptNumber, pointsEarned);
+        QuizAttempt activeAttempt = null;
+        if (exercise.getQuiz() != null) {
+            Optional<QuizAttempt> attemptOpt = quizAttemptRepository
+                    .findFirstByUserIdAndQuizIdAndStatusOrderByAttemptNumberDesc(
+                            user.getId(), exercise.getQuiz().getId(), QuizAttemptStatus.IN_PROGRESS);
+            activeAttempt = attemptOpt.orElse(null);
+        }
+
+        userProgressService.recordAttempt(user, exercise, result.isCorrect(), attemptNumber, pointsEarned, activeAttempt);
 
         Integer attemptsRemaining = unlimited ? null : Math.max(0, maxAttempts - attemptNumber);
 

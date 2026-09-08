@@ -25,4 +25,8 @@ public class QuizController {
     public ResponseEntity<QuizDTO> getQuizById(@PathVariable Long id) {
         return ResponseEntity.ok(quizService.getQuizById(id));
     }
+    @GetMapping
+    public ResponseEntity<List<QuizDTO>> getAllQuizzes() {
+        return ResponseEntity.ok(quizService.getAllQuizzes());
+    }
 }

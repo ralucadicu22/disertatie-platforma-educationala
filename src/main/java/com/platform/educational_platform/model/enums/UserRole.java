@@ -4,5 +4,6 @@ public enum UserRole {
     ELEV,
     PROFESOR,
     EDITOR,
-    ADMIN
+    ADMIN,
+    PARINTE
 }

@@ -41,4 +41,17 @@ public class QuizService {
                 .moduleId(q.getModule().getId())
                 .build();
     }
+
+    public List<QuizDTO> getAllQuizzes() {
+        return quizRepository.findAll().stream()
+                .map(q -> QuizDTO.builder()
+                        .id(q.getId())
+                        .title(q.getTitle())
+                        .description(q.getDescription())
+                        .orderIndex(q.getOrderIndex())
+                        .maxAttempts(q.getMaxAttempts())
+                        .moduleId(q.getModule() != null ? q.getModule().getId() : null)
+                        .build())
+                .toList();
+    }
 }

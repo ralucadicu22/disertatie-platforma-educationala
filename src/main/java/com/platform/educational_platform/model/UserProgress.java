@@ -1,10 +1,7 @@
 package com.platform.educational_platform.model;
 
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
 
 import java.time.LocalDateTime;
@@ -40,4 +37,10 @@ public class UserProgress {
 
     @CreationTimestamp
     private LocalDateTime submittedAt;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "quiz_attempt_id")
+    @ToString.Exclude
+    @EqualsAndHashCode.Exclude
+    private QuizAttempt quizAttempt;
 }

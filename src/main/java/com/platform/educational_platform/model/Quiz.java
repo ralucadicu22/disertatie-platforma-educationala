@@ -48,4 +48,8 @@ public class Quiz {
 
     @OneToMany(mappedBy = "quiz", cascade = CascadeType.ALL)
     private List<Exercise> exercises = new ArrayList<>();
+
+    @Column(nullable = false)
+    @Builder.Default
+    private Integer maxReplays = 0;
 }

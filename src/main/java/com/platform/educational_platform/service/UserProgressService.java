@@ -3,13 +3,13 @@ package com.platform.educational_platform.service;
 import com.platform.educational_platform.dto.UserProgressDTO;
 import com.platform.educational_platform.dto.UserStatsDTO;
 import com.platform.educational_platform.model.Exercise;
+import com.platform.educational_platform.model.QuizAttempt;
 import com.platform.educational_platform.model.User;
 import com.platform.educational_platform.model.UserProgress;
 import com.platform.educational_platform.repository.UserProgressRepository;
 import com.platform.educational_platform.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
-
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -22,13 +22,15 @@ public class UserProgressService {
     private final UserRepository userRepository;
 
     public void recordAttempt(User user, Exercise exercise,
-                              boolean correct, int attemptNumber, int pointsEarned) {
+                              boolean correct, int attemptNumber, int pointsEarned,
+                              QuizAttempt quizAttempt) {
         UserProgress progress = UserProgress.builder()
                 .user(user)
                 .exercise(exercise)
                 .correct(correct)
                 .attemptNumber(attemptNumber)
                 .pointsEarned(pointsEarned)
+                .quizAttempt(quizAttempt)
                 .build();
         userProgressRepository.save(progress);
     }
