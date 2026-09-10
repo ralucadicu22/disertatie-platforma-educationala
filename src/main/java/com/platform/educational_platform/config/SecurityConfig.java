@@ -119,11 +119,10 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.DELETE, "/api/exercises/**").hasAnyAuthority(EDITORS_UP)
 
                         // ── Classrooms ────────────────────────────────────────────────
-                        // Reguli SPECIFICE (pentru teachers/students) MEREU înainte de catch-all
+
                         .requestMatchers("/api/classrooms/*/teachers/**").hasAuthority("ADMIN")
                         .requestMatchers("/api/classrooms/*/students/**").hasAnyAuthority(TEACHERS_UP)
 
-                        // Catch-all pentru classrooms
                         .requestMatchers(HttpMethod.GET, "/api/classrooms/my").authenticated()
                         .requestMatchers(HttpMethod.GET, "/api/classrooms/**").authenticated()
                         //.requestMatchers(HttpMethod.GET, "/api/classrooms/**").hasAnyAuthority("ADMIN", "PROFESOR")

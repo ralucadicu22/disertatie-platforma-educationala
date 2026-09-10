@@ -74,7 +74,15 @@ public class UserProgressService {
                 .map(u -> getUserStats(u.getId()))
                 .collect(Collectors.toList());
     }
+    public Double getClassAverageForExercise(Long exerciseId, Long userId) {
+        Double avg = userProgressRepository.getClassAverageScoreForExercise(exerciseId, userId);
+        return avg != null ? Math.round(avg * 100.0) / 100.0 : 0.0;
+    }
 
+    public Double getGlobalAverageForExercise(Long exerciseId) {
+        Double avg = userProgressRepository.getAverageScoreForExercise(exerciseId);
+        return avg != null ? Math.round(avg * 100.0) / 100.0 : 0.0;
+    }
     private UserProgressDTO toDTO(UserProgress up) {
         return UserProgressDTO.builder()
                 .id(up.getId())

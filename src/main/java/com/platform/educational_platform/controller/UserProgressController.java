@@ -10,6 +10,7 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/progress")
@@ -40,5 +41,17 @@ public class UserProgressController {
     @GetMapping("/teacher/all-students")
     public ResponseEntity<List<UserStatsDTO>> getAllStudentsStats() {
         return ResponseEntity.ok(userProgressService.getAllElevStats());
+    }
+
+    @GetMapping("/exercise/{exerciseId}/class-average")
+    public ResponseEntity<Map<String, Double>> getClassAverage(
+            @PathVariable Long exerciseId,
+            @AuthenticationPrincipal User currentUser) {
+        Double classAvg = userProgressService.getClassAverageForExercise(exerciseId, currentUser.getId());
+        Double globalAvg = userProgressService.getGlobalAverageForExercise(exerciseId);
+        return ResponseEntity.ok(Map.of(
+                "classAverage", classAvg,
+                "globalAverage", globalAvg
+        ));
     }
 }

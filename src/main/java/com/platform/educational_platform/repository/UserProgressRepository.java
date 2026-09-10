@@ -42,4 +42,17 @@ public interface UserProgressRepository extends JpaRepository<UserProgress, Long
 
     @Query("SELECT p FROM UserProgress p WHERE p.user.id = :userId ORDER BY p.submittedAt DESC")
     List<UserProgress> findRecentByUserId(@Param("userId") Long userId, Pageable pageable);
+
+    @Query("SELECT COALESCE(AVG(up.pointsEarned), 0) FROM UserProgress up " +
+            "WHERE up.exercise.id = :exerciseId AND up.correct = true")
+    Double getAverageScoreForExercise(@Param("exerciseId") Long exerciseId);
+
+    @Query("SELECT COALESCE(AVG(up.pointsEarned), 0) FROM UserProgress up " +
+            "WHERE up.exercise.id = :exerciseId " +
+            "AND up.user.id IN (" +
+            "  SELECT s.id FROM Classroom c JOIN c.students s " +
+            "  WHERE :userId IN (SELECT s2.id FROM c.students s2)" +
+            ")")
+    Double getClassAverageScoreForExercise(@Param("exerciseId") Long exerciseId,
+                                           @Param("userId") Long userId);
 }
