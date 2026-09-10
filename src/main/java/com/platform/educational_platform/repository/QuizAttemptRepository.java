@@ -25,4 +25,6 @@ public interface QuizAttemptRepository extends JpaRepository<QuizAttempt, Long> 
     @Query("SELECT COUNT(qa) FROM QuizAttempt qa WHERE qa.user.id = :userId " +
             "AND qa.quiz.id = :quizId AND qa.status = 'COMPLETED'")
     int countCompletedByUserAndQuiz(@Param("userId") Long userId, @Param("quizId") Long quizId);
+
+    void deleteByQuizId(Long quizId);
 }

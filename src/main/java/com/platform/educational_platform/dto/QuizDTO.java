@@ -16,4 +16,5 @@ public class QuizDTO {
     private Integer orderIndex;
     private Integer maxAttempts;
     private Long moduleId;
+    private Integer maxReplays;
 }

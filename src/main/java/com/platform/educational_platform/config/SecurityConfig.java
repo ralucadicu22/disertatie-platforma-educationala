@@ -119,13 +119,17 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.DELETE, "/api/exercises/**").hasAnyAuthority(EDITORS_UP)
 
                         // ── Classrooms ────────────────────────────────────────────────
+                        // Reguli SPECIFICE (pentru teachers/students) MEREU înainte de catch-all
+                        .requestMatchers("/api/classrooms/*/teachers/**").hasAuthority("ADMIN")
+                        .requestMatchers("/api/classrooms/*/students/**").hasAnyAuthority(TEACHERS_UP)
+
+                        // Catch-all pentru classrooms
                         .requestMatchers(HttpMethod.GET, "/api/classrooms/my").authenticated()
-                        .requestMatchers(HttpMethod.GET, "/api/classrooms/**").hasAnyAuthority("ADMIN", "PROFESOR")
+                        .requestMatchers(HttpMethod.GET, "/api/classrooms/**").authenticated()
+                        //.requestMatchers(HttpMethod.GET, "/api/classrooms/**").hasAnyAuthority("ADMIN", "PROFESOR")
                         .requestMatchers(HttpMethod.POST, "/api/classrooms").hasAnyAuthority(TEACHERS_UP)
                         .requestMatchers(HttpMethod.PUT,    "/api/classrooms/**").hasAnyAuthority(TEACHERS_UP)
                         .requestMatchers(HttpMethod.DELETE, "/api/classrooms/**").hasAuthority("ADMIN")
-                        .requestMatchers("/api/classrooms/*/teachers/**").hasAuthority("ADMIN")
-                        .requestMatchers("/api/classrooms/*/students/**").hasAnyAuthority(TEACHERS_UP)
 
                         // ── Quiz assignments ──────────────────────────────────────────
                         .requestMatchers(HttpMethod.POST,   "/api/quiz-assignments/assign").hasAnyAuthority(TEACHERS_UP)
@@ -170,6 +174,7 @@ public class SecurityConfig {
                         .requestMatchers("/api/admin/**").hasAuthority("ADMIN")
                         .requestMatchers("/api/editor/**").hasAnyAuthority(EDITORS_UP)
                         .requestMatchers("/api/teacher/**").hasAnyAuthority(TEACHERS_UP)
+
 
                         // ── Default ───────────────────────────────────────────────────
                         .anyRequest().authenticated()
