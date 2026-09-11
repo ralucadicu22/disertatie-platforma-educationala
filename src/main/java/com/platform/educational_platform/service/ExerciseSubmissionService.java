@@ -1,5 +1,6 @@
 package com.platform.educational_platform.service;
 
+import com.platform.educational_platform.dto.BadgeDTO;
 import com.platform.educational_platform.dto.exercise.submission.*;
 import com.platform.educational_platform.model.Exercise;
 import com.platform.educational_platform.model.ExerciseVersion;
@@ -19,6 +20,7 @@ import org.springframework.transaction.annotation.Transactional;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
 
+import java.util.List;
 import java.util.Optional;
 
 @Service
@@ -32,6 +34,7 @@ public class ExerciseSubmissionService {
     private final QuizAttemptRepository quizAttemptRepository;
     private final ExerciseValidatorRegistry validatorRegistry;
     private final ObjectMapper objectMapper;
+    private final BadgeService badgeService;
 
     private JsonNode getPublishedConfig(Exercise exercise) {
         ExerciseVersion published = exercise.getCurrentVersion();
@@ -88,16 +91,20 @@ public class ExerciseSubmissionService {
         }
 
         userProgressService.recordAttempt(user, exercise, result.isCorrect(), attemptNumber, pointsEarned, activeAttempt);
+        List<BadgeDTO> newBadges = badgeService.checkAndAwardBadges(
+                user, request.getExerciseId(), result.isCorrect(), result.getScore()
+        );
 
-        Integer attemptsRemaining = unlimited ? null : Math.max(0, maxAttempts - attemptNumber);
+        Integer attemptsRemaining = unlimited ? null :
+                Math.max(0, maxAttempts - attemptNumber);
 
         return SubmitAnswerResponse.builder()
                 .correct(result.isCorrect())
                 .score(result.getScore())
                 .details(result.getDetails())
                 .maxAttempts(maxAttempts)
-                .attemptNumber(attemptNumber)
                 .attemptsRemaining(attemptsRemaining)
+                .newBadges(newBadges)
                 .build();
     }
 

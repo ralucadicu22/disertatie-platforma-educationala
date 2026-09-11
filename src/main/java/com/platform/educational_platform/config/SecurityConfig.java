@@ -180,6 +180,8 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.PUT,    "/api/users/**").hasAuthority("ADMIN")
                         .requestMatchers(HttpMethod.DELETE, "/api/users/**").hasAuthority("ADMIN")
 
+                        .requestMatchers("/api/badges/**").hasAnyAuthority(LEARNERS)
+
                         // ── Default ───────────────────────────────────────────────────
                         .anyRequest().authenticated()
                 );
