@@ -176,6 +176,10 @@ public class SecurityConfig {
 
                         .requestMatchers(HttpMethod.GET, "/api/export/**").hasAnyAuthority(TEACHERS_UP)
 
+                        .requestMatchers(HttpMethod.GET,    "/api/users/**").hasAnyAuthority(TEACHERS_UP)
+                        .requestMatchers(HttpMethod.PUT,    "/api/users/**").hasAuthority("ADMIN")
+                        .requestMatchers(HttpMethod.DELETE, "/api/users/**").hasAuthority("ADMIN")
+
                         // ── Default ───────────────────────────────────────────────────
                         .anyRequest().authenticated()
                 );
