@@ -174,6 +174,7 @@ public class SecurityConfig {
                         .requestMatchers("/api/editor/**").hasAnyAuthority(EDITORS_UP)
                         .requestMatchers("/api/teacher/**").hasAnyAuthority(TEACHERS_UP)
 
+                        .requestMatchers(HttpMethod.GET, "/api/export/**").hasAnyAuthority(TEACHERS_UP)
 
                         // ── Default ───────────────────────────────────────────────────
                         .anyRequest().authenticated()
