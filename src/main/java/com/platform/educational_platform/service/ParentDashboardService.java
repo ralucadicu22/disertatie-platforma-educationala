@@ -1,119 +1,108 @@
 package com.platform.educational_platform.service;
 
 import com.platform.educational_platform.dto.ParentDashboardDTO;
-import com.platform.educational_platform.model.Classroom;
 import com.platform.educational_platform.model.User;
 import com.platform.educational_platform.model.UserProgress;
 import com.platform.educational_platform.model.enums.UserRole;
 import com.platform.educational_platform.repository.ClassroomRepository;
+import com.platform.educational_platform.repository.QuizAttemptRepository;
 import com.platform.educational_platform.repository.UserProgressRepository;
 import com.platform.educational_platform.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.server.ResponseStatusException;
 
-import java.util.List;
+import java.time.Duration;
+import java.time.LocalDateTime;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
+@Transactional(readOnly = true)
 public class ParentDashboardService {
 
     private final UserRepository userRepository;
     private final UserProgressRepository userProgressRepository;
     private final ClassroomRepository classroomRepository;
+    private final QuizAttemptRepository quizAttemptRepository;
 
-    private static final int RECENT_ATTEMPTS_LIMIT = 20;
-
-    @Transactional(readOnly = true)
     public ParentDashboardDTO.Overview getOverview(User currentUser) {
-        checkParent(currentUser);
+        User parent = userRepository.findById(currentUser.getId())
+                .orElseThrow(() -> new IllegalStateException("Utilizator nu a fost gasit"));
 
-        List<User> children = userRepository.findChildrenByParentId(currentUser.getId());
+        if (parent.getRole() != UserRole.PARINTE) {
+            throw new IllegalStateException("Doar parintii pot accesa dashboard-ul");
+        }
 
-        List<ParentDashboardDTO.ChildSummary> childSummaries = children.stream()
+        List<User> children = userRepository.findChildrenByParentId(parent.getId());
+
+        List<ParentDashboardDTO.ChildSummary> summaries = children.stream()
                 .map(this::buildChildSummary)
                 .collect(Collectors.toList());
 
         return ParentDashboardDTO.Overview.builder()
-                .parentId(currentUser.getId())
-                .parentName(currentUser.getName())
+                .parentId(parent.getId())
+                .parentName(parent.getName())
                 .childrenCount(children.size())
-                .children(childSummaries)
+                .children(summaries)
                 .build();
     }
-    @Transactional(readOnly = true)
+
     public ParentDashboardDTO.ChildDetail getChildDetail(Long childId, User currentUser) {
-        checkParent(currentUser);
+        User parent = userRepository.findById(currentUser.getId())
+                .orElseThrow(() -> new IllegalStateException("Utilizator nu a fost gasit"));
 
-        User child = userRepository.findById(childId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Copilul nu există"));
-
-        boolean isMyChild = currentUser.getChildren().stream()
-                .anyMatch(c -> c.getId().equals(childId));
-        if (!isMyChild) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN,
-                    "Nu ai acces la datele acestui elev");
+        if (parent.getRole() != UserRole.PARINTE) {
+            throw new IllegalStateException("Doar parintii pot accesa dashboard-ul");
         }
 
-        List<UserProgress> allAttempts = userProgressRepository.findByUserIdOrderBySubmittedAtDesc(child.getId());
-        long totalAttempts = allAttempts.size();
-        long correctAttempts = allAttempts.stream().filter(UserProgress::getCorrect).count();
-        long distinctExercises = allAttempts.stream()
-                .map(p -> p.getExercise().getId())
-                .distinct()
-                .count();
-        int totalPoints = allAttempts.stream().mapToInt(UserProgress::getPointsEarned).sum();
-        double successRate = totalAttempts > 0 ? (correctAttempts * 100.0 / totalAttempts) : 0.0;
+        User child = userRepository.findById(childId)
+                .orElseThrow(() -> new IllegalStateException("Elev inexistent"));
 
-        List<UserProgress> recent = userProgressRepository.findRecentByUserId(
-                child.getId(), PageRequest.of(0, RECENT_ATTEMPTS_LIMIT));
+        boolean isMyChild = userRepository.findChildrenByParentId(parent.getId()).stream()
+                .anyMatch(c -> c.getId().equals(childId));
 
-        List<ParentDashboardDTO.AttemptInfo> recentAttempts = recent.stream()
-                .map(this::toAttemptInfo)
-                .collect(Collectors.toList());
+        if (!isMyChild) {
+            throw new IllegalStateException("Nu ai acces la acest elev");
+        }
 
-        List<Classroom> classrooms = classroomRepository.findActiveByStudentId(child.getId());
-        List<ParentDashboardDTO.ClassroomProgress> classroomProgress = classrooms.stream()
-                .map(c -> buildClassroomProgress(c, child, allAttempts))
-                .collect(Collectors.toList());
-
-        return ParentDashboardDTO.ChildDetail.builder()
-                .childId(child.getId())
-                .childName(child.getName())
-                .childEmail(child.getEmail())
-                .totalAttempts(totalAttempts)
-                .correctAttempts(correctAttempts)
-                .distinctExercisesCompleted(distinctExercises)
-                .totalPoints(totalPoints)
-                .successRate(round(successRate))
-                .lastActivityAt(allAttempts.isEmpty() ? null : allAttempts.get(0).getSubmittedAt())
-                .recentAttempts(recentAttempts)
-                .classroomProgress(classroomProgress)
-                .build();
+        return buildChildDetail(child);
     }
 
     private ParentDashboardDTO.ChildSummary buildChildSummary(User child) {
-        List<UserProgress> attempts = userProgressRepository.findByUserIdOrderBySubmittedAtDesc(child.getId());
+        List<UserProgress> progressList = userProgressRepository
+                .findByUserIdOrderBySubmittedAtDesc(child.getId());
 
-        long totalAttempts = attempts.size();
-        long correctAttempts = attempts.stream().filter(UserProgress::getCorrect).count();
-        long distinctExercises = attempts.stream()
+        long totalAttempts = progressList.size();
+        long correctAttempts = progressList.stream().filter(UserProgress::getCorrect).count();
+        int totalPoints = progressList.stream().mapToInt(UserProgress::getPointsEarned).sum();
+
+        long distinctExercisesCompleted = progressList.stream()
+                .filter(UserProgress::getCorrect)
                 .map(p -> p.getExercise().getId())
                 .distinct()
                 .count();
-        int totalPoints = attempts.stream().mapToInt(UserProgress::getPointsEarned).sum();
-        double successRate = totalAttempts > 0 ? (correctAttempts * 100.0 / totalAttempts) : 0.0;
 
-        UserProgress last = attempts.isEmpty() ? null : attempts.get(0);
+        double successRate = totalAttempts == 0
+                ? 0.0
+                : ((double) correctAttempts / totalAttempts) * 100.0;
 
-        List<Classroom> classrooms = classroomRepository.findActiveByStudentId(child.getId());
-        List<String> classroomNames = classrooms.stream()
-                .map(Classroom::getName)
+        LocalDateTime lastActivity = progressList.isEmpty() ? null
+                : progressList.get(0).getSubmittedAt();
+
+        String lastExerciseTitle = progressList.isEmpty()
+                ? null
+                : "Exercitiul #" + progressList.get(0).getExercise().getId();
+
+        List<String> classroomNames = classroomRepository.findActiveByStudentId(child.getId()).stream()
+                .map(c -> c.getName())
                 .collect(Collectors.toList());
+
+        long totalMinutesSpent = quizAttemptRepository.findByUserIdOrderByStartedAtDesc(child.getId()).stream()
+                .filter(a -> a.getFinishedAt() != null && a.getStartedAt() != null)
+                .mapToLong(a -> Duration.between(a.getStartedAt(), a.getFinishedAt()).toMinutes())
+                .sum();
 
         return ParentDashboardDTO.ChildSummary.builder()
                 .childId(child.getId())
@@ -121,50 +110,85 @@ public class ParentDashboardService {
                 .childEmail(child.getEmail())
                 .totalAttempts(totalAttempts)
                 .correctAttempts(correctAttempts)
-                .distinctExercisesCompleted(distinctExercises)
+                .distinctExercisesCompleted(distinctExercisesCompleted)
                 .totalPoints(totalPoints)
-                .successRate(round(successRate))
-                .lastActivityAt(last != null ? last.getSubmittedAt() : null)
-                .lastExerciseTitle(last != null ? extractExerciseTitle(last) : null)
+                .successRate(successRate)
+                .lastActivityAt(lastActivity)
+                .lastExerciseTitle(lastExerciseTitle)
                 .classroomNames(classroomNames)
+                .totalMinutesSpent(totalMinutesSpent)
                 .build();
     }
 
-    private ParentDashboardDTO.ClassroomProgress buildClassroomProgress(
-            Classroom classroom, User child, List<UserProgress> allAttempts) {
+    private ParentDashboardDTO.ChildDetail buildChildDetail(User child) {
+        List<UserProgress> progressList = userProgressRepository
+                .findByUserIdOrderBySubmittedAtDesc(child.getId());
+        var attempts = quizAttemptRepository.findByUserIdOrderByStartedAtDesc(child.getId());
 
-        int assignedQuizzes = classroom.getAssignedQuizzes().size();
+        long totalAttempts = progressList.size();
+        long correctAttempts = progressList.stream().filter(UserProgress::getCorrect).count();
+        int totalPoints = progressList.stream().mapToInt(UserProgress::getPointsEarned).sum();
 
-        long completedQuizzes = classroom.getAssignedQuizzes().stream()
-                .filter(q -> {
-                    if (q.getExercises() == null || q.getExercises().isEmpty()) return false;
-                    return q.getExercises().stream().allMatch(ex ->
-                            allAttempts.stream().anyMatch(a ->
-                                    a.getExercise().getId().equals(ex.getId()) && a.getCorrect()));
-                })
+        long distinctExercisesCompleted = progressList.stream()
+                .filter(UserProgress::getCorrect)
+                .map(p -> p.getExercise().getId())
+                .distinct()
                 .count();
 
-        int pointsInClassroom = allAttempts.stream()
-                .filter(a -> classroom.getAssignedQuizzes().stream()
-                        .flatMap(q -> q.getExercises().stream())
-                        .anyMatch(ex -> ex.getId().equals(a.getExercise().getId())))
-                .mapToInt(UserProgress::getPointsEarned)
+        double successRate = totalAttempts == 0
+                ? 0.0
+                : ((double) correctAttempts / totalAttempts) * 100.0;
+
+        LocalDateTime lastActivity = progressList.isEmpty() ? null
+                : progressList.get(0).getSubmittedAt();
+
+        long totalMinutesSpent = attempts.stream()
+                .filter(a -> a.getFinishedAt() != null && a.getStartedAt() != null)
+                .mapToLong(a -> Duration.between(a.getStartedAt(), a.getFinishedAt()).toMinutes())
                 .sum();
 
-        return ParentDashboardDTO.ClassroomProgress.builder()
-                .classroomId(classroom.getId())
-                .classroomName(classroom.getName())
-                .assignedQuizzes(assignedQuizzes)
-                .completedQuizzes((int) completedQuizzes)
-                .totalPointsInClassroom(pointsInClassroom)
+        List<ParentDashboardDTO.QuizTimeInfo> quizTimeList = attempts.stream()
+                .filter(a -> a.getFinishedAt() != null && a.getStartedAt() != null)
+                .map(a -> ParentDashboardDTO.QuizTimeInfo.builder()
+                        .attemptId(a.getId())
+                        .quizId(a.getQuiz() != null ? a.getQuiz().getId() : null)
+                        .quizTitle(a.getQuiz() != null ? a.getQuiz().getTitle() : "Quiz")
+                        .startedAt(a.getStartedAt())
+                        .finishedAt(a.getFinishedAt())
+                        .minutesSpent(Duration.between(a.getStartedAt(), a.getFinishedAt()).toMinutes())
+                        .status(a.getStatus().name())
+                        .build())
+                .collect(Collectors.toList());
+
+        List<ParentDashboardDTO.AttemptInfo> recentAttempts = progressList.stream()
+                .limit(20)
+                .map(this::mapAttempt)
+                .collect(Collectors.toList());
+
+        List<ParentDashboardDTO.ClassroomProgress> classroomProgress = buildClassroomProgress(child, progressList);
+
+        return ParentDashboardDTO.ChildDetail.builder()
+                .childId(child.getId())
+                .childName(child.getName())
+                .childEmail(child.getEmail())
+                .totalAttempts(totalAttempts)
+                .correctAttempts(correctAttempts)
+                .distinctExercisesCompleted(distinctExercisesCompleted)
+                .totalPoints(totalPoints)
+                .successRate(successRate)
+                .lastActivityAt(lastActivity)
+                .totalMinutesSpent(totalMinutesSpent)
+                .recentAttempts(recentAttempts)
+                .classroomProgress(classroomProgress)
+                .quizTimeList(quizTimeList)
                 .build();
     }
 
-    private ParentDashboardDTO.AttemptInfo toAttemptInfo(UserProgress p) {
+    private ParentDashboardDTO.AttemptInfo mapAttempt(UserProgress p) {
         return ParentDashboardDTO.AttemptInfo.builder()
                 .attemptId(p.getId())
                 .exerciseId(p.getExercise().getId())
-                .exerciseTitle(extractExerciseTitle(p))
+                .exerciseTitle("Exercitiul #" + p.getExercise().getId())
                 .correct(p.getCorrect())
                 .attemptNumber(p.getAttemptNumber())
                 .pointsEarned(p.getPointsEarned())
@@ -172,22 +196,44 @@ public class ParentDashboardService {
                 .build();
     }
 
-    private String extractExerciseTitle(UserProgress p) {
-        if (p.getExercise() == null) return "Exercițiu necunoscut";
-        String quizTitle = p.getExercise().getQuiz() != null
-                ? p.getExercise().getQuiz().getTitle()
-                : "?";
-        return quizTitle + " — Exercițiu #" + p.getExercise().getId();
-    }
+    private List<ParentDashboardDTO.ClassroomProgress> buildClassroomProgress(User child, List<UserProgress> progressList) {
+        var classrooms = classroomRepository.findActiveByStudentId(child.getId());
 
-    private void checkParent(User user) {
-        if (user.getRole() != UserRole.PARINTE) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN,
-                    "Doar părinții au acces la această resursă");
-        }
-    }
+        return classrooms.stream().map(c -> {
+            int assignedQuizzes = c.getAssignedQuizzes().size();
 
-    private double round(double value) {
-        return Math.round(value * 100.0) / 100.0;
+            long completedQuizzes = c.getAssignedQuizzes().stream().filter(quiz -> {
+                Set<Long> quizExerciseIds = quiz.getExercises().stream()
+                        .map(e -> e.getId())
+                        .collect(Collectors.toSet());
+
+                if (quizExerciseIds.isEmpty()) return false;
+
+                Set<Long> completedInQuiz = progressList.stream()
+                        .filter(p -> p.getCorrect() && quizExerciseIds.contains(p.getExercise().getId()))
+                        .map(p -> p.getExercise().getId())
+                        .collect(Collectors.toSet());
+
+                return completedInQuiz.containsAll(quizExerciseIds);
+            }).count();
+
+            int pointsInClassroom = c.getAssignedQuizzes().stream()
+                    .flatMap(quiz -> quiz.getExercises().stream())
+                    .map(e -> e.getId())
+                    .distinct()
+                    .mapToInt(exerciseId -> progressList.stream()
+                            .filter(p -> p.getExercise().getId().equals(exerciseId))
+                            .mapToInt(UserProgress::getPointsEarned)
+                            .sum())
+                    .sum();
+
+            return ParentDashboardDTO.ClassroomProgress.builder()
+                    .classroomId(c.getId())
+                    .classroomName(c.getName())
+                    .assignedQuizzes(assignedQuizzes)
+                    .completedQuizzes((int) completedQuizzes)
+                    .totalPointsInClassroom(pointsInClassroom)
+                    .build();
+        }).collect(Collectors.toList());
     }
 }

@@ -34,7 +34,7 @@ public class ParentDashboardDTO {
         private LocalDateTime lastActivityAt;
         private String lastExerciseTitle;
         private List<String> classroomNames;
-    }
+        private long totalMinutesSpent;}
 
     @Data
     @NoArgsConstructor
@@ -51,8 +51,23 @@ public class ParentDashboardDTO {
         private double successRate;
 
         private LocalDateTime lastActivityAt;
+        private long totalMinutesSpent;
         private List<AttemptInfo> recentAttempts;
         private List<ClassroomProgress> classroomProgress;
+        private List<QuizTimeInfo> quizTimeList;
+    }
+    @Data
+    @NoArgsConstructor
+    @AllArgsConstructor
+    @Builder
+    public static class QuizTimeInfo {
+        private Long attemptId;
+        private Long quizId;
+        private String quizTitle;
+        private LocalDateTime startedAt;
+        private LocalDateTime finishedAt;
+        private long minutesSpent;
+        private String status;
     }
 
     @Data
