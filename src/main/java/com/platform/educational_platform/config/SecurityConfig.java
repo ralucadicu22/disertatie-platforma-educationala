@@ -167,7 +167,9 @@ public class SecurityConfig {
                         .requestMatchers("/api/student-feedback/exercise/**").hasAnyAuthority(STAFF)
 
                         // ── Progress ──────────────────────────────────────────────────
+                        .requestMatchers(HttpMethod.GET, "/api/progress/student/**").hasAnyAuthority(TEACHERS_UP)
                         .requestMatchers("/api/progress/**").authenticated()
+
 
                         // ── Admin / Editor / Teacher catch-all ────────────────────────
                         .requestMatchers("/api/admin/**").hasAuthority("ADMIN")

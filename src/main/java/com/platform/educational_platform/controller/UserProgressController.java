@@ -54,4 +54,16 @@ public class UserProgressController {
                 "globalAverage", globalAvg
         ));
     }
+
+    @GetMapping("/student/{studentId}")
+    public ResponseEntity<List<UserProgressDTO>> getStudentHistory(
+            @PathVariable Long studentId) {
+        return ResponseEntity.ok(userProgressService.getUserHistory(studentId));
+    }
+
+    @GetMapping("/student/{studentId}/stats")
+    public ResponseEntity<UserStatsDTO> getStudentStats(
+            @PathVariable Long studentId) {
+        return ResponseEntity.ok(userProgressService.getUserStats(studentId));
+    }
 }
