@@ -1,6 +1,7 @@
 package com.platform.educational_platform.controller;
 
 import com.platform.educational_platform.dto.AssetDTO;
+import com.platform.educational_platform.model.User;
 import com.platform.educational_platform.service.AssetService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -23,7 +24,9 @@ public class AssetController {
     public ResponseEntity<AssetDTO> upload(
             @RequestParam("file") MultipartFile file,
             Authentication authentication) throws IOException {
-        return ResponseEntity.ok(assetService.upload(file, authentication.getName()));
+
+        User user = (User) authentication.getPrincipal();
+        return ResponseEntity.ok(assetService.upload(file, user.getEmail()));
     }
 
     @GetMapping
