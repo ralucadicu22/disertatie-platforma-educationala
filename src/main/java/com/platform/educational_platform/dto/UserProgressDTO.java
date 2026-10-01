@@ -20,4 +20,5 @@ public class UserProgressDTO {
     private Integer attemptNumber;
     private Integer pointsEarned;
     private LocalDateTime submittedAt;
+    private Integer durationSeconds;
 }

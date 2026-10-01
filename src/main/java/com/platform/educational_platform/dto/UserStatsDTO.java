@@ -15,4 +15,5 @@ public class UserStatsDTO {
     private Long completedExercises;
     private Long totalSubmissions;
     private Long totalPoints;
+    private Long totalDurationSeconds;
 }

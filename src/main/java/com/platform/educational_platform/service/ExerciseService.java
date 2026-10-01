@@ -8,6 +8,8 @@ import com.platform.educational_platform.model.ExerciseVersion;
 import com.platform.educational_platform.model.enums.GradeLevel;
 import com.platform.educational_platform.model.enums.VersionStatus;
 import com.platform.educational_platform.repository.ExerciseRepository;
+import com.platform.educational_platform.repository.ExerciseVersionRepository;
+import com.platform.educational_platform.repository.UserProgressRepository;
 import com.platform.educational_platform.specification.ExerciseSpecifications;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
@@ -28,8 +30,10 @@ import java.util.stream.Collectors;
 public class ExerciseService {
 
     private final ExerciseRepository exerciseRepository;
+    private final ExerciseVersionRepository versionRepo;
     private final TagService tagService;
     private final ObjectMapper objectMapper;
+    private final UserProgressRepository userProgressRepository;
 
     public List<ExerciseDTO> getExercisesByQuiz(Long quizId) {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
@@ -38,8 +42,11 @@ public class ExerciseService {
 
         return exerciseRepository.findByQuizIdOrderByOrderIndexAsc(quizId)
                 .stream()
-                .filter(e -> isEditorOrAdmin || (e.getCurrentVersion() != null
-                        && e.getCurrentVersion().getStatus() == VersionStatus.PUBLISHED))
+                .filter(e -> {
+                    if (isEditorOrAdmin) return true;
+                    return e.getCurrentVersion() != null
+                            && e.getCurrentVersion().getStatus() == VersionStatus.PUBLISHED;
+                })
                 .map(this::toDTO)
                 .collect(Collectors.toList());
     }
@@ -70,7 +77,7 @@ public class ExerciseService {
     @Transactional
     public ExerciseDTO updateMetadata(Long exerciseId, UpdateExerciseMetadataRequest req) {
         Exercise exercise = exerciseRepository.findById(exerciseId)
-                .orElseThrow(() -> new RuntimeException("Exercitiul nu exista"));
+                .orElseThrow(() -> new RuntimeException("Exercițiul nu există"));
 
         if (req.getTopic() != null) exercise.setTopic(req.getTopic());
         if (req.getGradeLevel() != null) exercise.setGradeLevel(req.getGradeLevel());
@@ -86,38 +93,48 @@ public class ExerciseService {
         if (configJson == null || isEditorOrAdmin) {
             return configJson;
         }
-        try {
-            ObjectNode root = (ObjectNode) objectMapper.readTree(configJson);
-            JsonNode solutionNode = root.path("solution");
-
-            int correctCount;
-            if (solutionNode.has("correctElementIds")) {
-                correctCount = solutionNode.path("correctElementIds").size();
-            } else if (solutionNode.has("dropMapping")) {
-                correctCount = solutionNode.path("dropMapping").size();
-            } else {
-                correctCount = 0;
-            }
-
-            ObjectNode safeSolution = objectMapper.createObjectNode();
-            safeSolution.put("correctCount", correctCount);
-            root.set("solution", safeSolution);
-
-            return objectMapper.writeValueAsString(root);
-        } catch (Exception e) {
-            return null;
-        }
+        return configJson;
+    }
+    @Transactional
+    public void deleteExercise(Long exerciseId) {
+        Exercise exercise = exerciseRepository.findById(exerciseId)
+                .orElseThrow(() -> new RuntimeException("Exercițiul nu există"));
+        userProgressRepository.deleteByExerciseId(exerciseId);
+        exerciseRepository.delete(exercise);
     }
 
     private ExerciseDTO toDTO(Exercise e) {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         boolean isEditorOrAdmin = auth != null && auth.getAuthorities().stream()
                 .anyMatch(a -> a.getAuthority().equals("EDITOR") || a.getAuthority().equals("ADMIN"));
+        ExerciseVersion activeVersion = e.getCurrentVersion();
+            if (activeVersion == null && isEditorOrAdmin) {
+            activeVersion = versionRepo
+                    .findByExerciseIdAndStatus(e.getId(), VersionStatus.PENDING_REVIEW)
+                    .orElse(null);
+            if (activeVersion == null) {
+                activeVersion = versionRepo
+                        .findByExerciseIdAndStatus(e.getId(), VersionStatus.DRAFT)
+                        .orElse(null);
+            }
+        }
+        String status = activeVersion != null
+                ? activeVersion.getStatus().name()
+                : "DRAFT";
 
-        ExerciseVersion active = e.getCurrentVersion();
+        String name = null;
+        if (activeVersion != null) {
+            try {
+                JsonNode cfg = objectMapper.readTree(activeVersion.getConfig());
+                name = cfg.path("meta").path("name").asText(null);
+            } catch (Exception ex) { /* ignore */ }
+        }
+        if (name == null || name.isBlank()) {
+            name = "Exercițiu #" + e.getId();
+        }
         String config = null;
-        if (active != null && active.getStatus() == VersionStatus.PUBLISHED) {
-            config = sanitizeConfigForRole(active.getConfig(), isEditorOrAdmin);
+        if (activeVersion != null && activeVersion.getStatus() == VersionStatus.PUBLISHED) {
+            config = sanitizeConfigForRole(activeVersion.getConfig(), isEditorOrAdmin);
         }
 
         Set<TagDTO> tagDTOs = e.getTags() == null ? null : e.getTags().stream()
@@ -139,6 +156,8 @@ public class ExerciseService {
                 .topic(e.getTopic())
                 .gradeLevel(e.getGradeLevel())
                 .tags(tagDTOs)
+                .status(status)
+                .name(name)
                 .build();
     }
 }

@@ -14,4 +14,5 @@ public class SubmitAnswerRequest {
 
     private Long exerciseId;
     private Object answer;
+    private Integer durationSeconds;
 }

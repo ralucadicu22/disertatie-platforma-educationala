@@ -73,6 +73,11 @@ public class UserController {
         userRepository.deleteById(id);
         return ResponseEntity.noContent().build();
     }
+    @GetMapping("/count")
+    public ResponseEntity<Long> getUserCount() {
+        return ResponseEntity.ok(userRepository.count());
+    }
+
 
     private UserSummaryDTO toDTO(User u) {
         return UserSummaryDTO.builder()

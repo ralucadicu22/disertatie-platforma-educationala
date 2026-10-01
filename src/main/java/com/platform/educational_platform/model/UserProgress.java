@@ -43,4 +43,7 @@ public class UserProgress {
     @ToString.Exclude
     @EqualsAndHashCode.Exclude
     private QuizAttempt quizAttempt;
+
+    @Column
+    private Integer durationSeconds;
 }

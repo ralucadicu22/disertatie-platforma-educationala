@@ -99,10 +99,8 @@ public class ParentDashboardService {
                 .map(c -> c.getName())
                 .collect(Collectors.toList());
 
-        long totalMinutesSpent = quizAttemptRepository.findByUserIdOrderByStartedAtDesc(child.getId()).stream()
-                .filter(a -> a.getFinishedAt() != null && a.getStartedAt() != null)
-                .mapToLong(a -> Duration.between(a.getStartedAt(), a.getFinishedAt()).toMinutes())
-                .sum();
+        Long totalSecondsSpent = userProgressRepository.sumDurationByUser(child.getId());
+        long totalMinutesSpent = totalSecondsSpent != null ? totalSecondsSpent / 60 : 0;
 
         return ParentDashboardDTO.ChildSummary.builder()
                 .childId(child.getId())
@@ -142,10 +140,8 @@ public class ParentDashboardService {
         LocalDateTime lastActivity = progressList.isEmpty() ? null
                 : progressList.get(0).getSubmittedAt();
 
-        long totalMinutesSpent = attempts.stream()
-                .filter(a -> a.getFinishedAt() != null && a.getStartedAt() != null)
-                .mapToLong(a -> Duration.between(a.getStartedAt(), a.getFinishedAt()).toMinutes())
-                .sum();
+        Long totalSecondsSpent = userProgressRepository.sumDurationByUser(child.getId());
+        long totalMinutesSpent = totalSecondsSpent != null ? totalSecondsSpent / 60 : 0;
 
         List<ParentDashboardDTO.QuizTimeInfo> quizTimeList = attempts.stream()
                 .filter(a -> a.getFinishedAt() != null && a.getStartedAt() != null)

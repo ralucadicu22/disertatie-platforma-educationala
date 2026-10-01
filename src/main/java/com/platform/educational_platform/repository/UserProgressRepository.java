@@ -22,6 +22,8 @@ public interface UserProgressRepository extends JpaRepository<UserProgress, Long
 
     int countByUserIdAndExerciseId(Long userId, Long exerciseId);
 
+    int countByUserIdAndExerciseIdAndQuizAttemptId(Long userId, Long exerciseId, Long quizAttemptId);
+
     @Query("SELECT COUNT(DISTINCT up.exercise.id) FROM UserProgress up " +
             "WHERE up.user.id = :userId AND up.correct = true")
     Long countCompletedExercisesByUser(Long userId);
@@ -55,4 +57,8 @@ public interface UserProgressRepository extends JpaRepository<UserProgress, Long
             ")")
     Double getClassAverageScoreForExercise(@Param("exerciseId") Long exerciseId,
                                            @Param("userId") Long userId);
+    @Query("SELECT COALESCE(SUM(up.durationSeconds), 0) FROM UserProgress up WHERE up.user.id = :userId")
+    Long sumDurationByUser(@Param("userId") Long userId);
+
+    void deleteByExerciseId(Long exerciseId);
 }

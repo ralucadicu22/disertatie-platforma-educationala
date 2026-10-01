@@ -27,7 +27,7 @@ public class AuthController {
     public ResponseEntity<AuthResponse> register(@RequestBody RegisterRequest request) {
         if (userRepository.findByEmail(request.getEmail()).isPresent()) {
             return ResponseEntity.badRequest()
-                    .body(new AuthResponse(null, "Email deja inregistrat"));
+                    .body(new AuthResponse(null, "Email deja înregistrat"));
         }
 
         User user = User.builder()
@@ -40,21 +40,21 @@ public class AuthController {
         userRepository.save(user);
         String token = jwtUtil.generateToken(user);
 
-        return ResponseEntity.ok(new AuthResponse(token, "Inregistrare reusita"));
+        return ResponseEntity.ok(new AuthResponse(token, "Înregistrare reușită"));
     }
 
     @PostMapping("/login")
     public ResponseEntity<AuthResponse> login(@RequestBody LoginRequest request) {
         User user = userRepository.findByEmail(request.getEmail())
-                .orElseThrow(() -> new RuntimeException("Utilizator negasit"));
+                .orElseThrow(() -> new RuntimeException("Utilizator negăsit"));
 
         if (!passwordEncoder.matches(request.getPassword(), user.getPassword())) {
             return ResponseEntity.badRequest()
-                    .body(new AuthResponse(null, "Parola gresita"));
+                    .body(new AuthResponse(null, "Parolă greșită"));
         }
 
         String token = jwtUtil.generateToken(user);
-        return ResponseEntity.ok(new AuthResponse(token, "Login reusit"));
+        return ResponseEntity.ok(new AuthResponse(token, "Login reușit"));
     }
 
     @GetMapping("/me")

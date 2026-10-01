@@ -69,28 +69,37 @@ public class ExerciseSubmissionService {
         JsonNode config = getPublishedConfig(exercise);
 
         Integer maxAttempts = exercise.getMaxAttempts();
-        int attemptsUsed = userProgressRepository.countByUserIdAndExerciseId(user.getId(), exercise.getId());
+
+        QuizAttempt activeAttempt = null;
+        if (exercise.getQuiz() != null) {
+            activeAttempt = quizAttemptRepository
+                    .findFirstByUserIdAndQuizIdAndStatusOrderByAttemptNumberDesc(
+                            user.getId(), exercise.getQuiz().getId(), QuizAttemptStatus.IN_PROGRESS)
+                    .orElse(null);
+        }
+
+        int attemptsUsed;
+        if (activeAttempt != null) {
+            attemptsUsed = userProgressRepository.countByUserIdAndExerciseIdAndQuizAttemptId(
+                    user.getId(), exercise.getId(), activeAttempt.getId());
+        } else {
+            attemptsUsed = userProgressRepository.countByUserIdAndExerciseId(
+                    user.getId(), exercise.getId());
+        }
 
         boolean unlimited = maxAttempts == null || maxAttempts == 0;
         if (!unlimited && attemptsUsed >= maxAttempts) {
             throw new RuntimeException("Numarul maxim de incercari a fost atins");
         }
-
         ExerciseValidator validator = validatorRegistry.getValidator(exercise.getType());
         ValidationResult result = validator.validate(config, request.getAnswer());
 
         int attemptNumber = attemptsUsed + 1;
         int pointsEarned = result.isCorrect() ? exercise.getPoints() : 0;
 
-        QuizAttempt activeAttempt = null;
-        if (exercise.getQuiz() != null) {
-            Optional<QuizAttempt> attemptOpt = quizAttemptRepository
-                    .findFirstByUserIdAndQuizIdAndStatusOrderByAttemptNumberDesc(
-                            user.getId(), exercise.getQuiz().getId(), QuizAttemptStatus.IN_PROGRESS);
-            activeAttempt = attemptOpt.orElse(null);
-        }
 
-        userProgressService.recordAttempt(user, exercise, result.isCorrect(), attemptNumber, pointsEarned, activeAttempt);
+
+        userProgressService.recordAttempt(user, exercise, result.isCorrect(), attemptNumber, pointsEarned, activeAttempt, request.getDurationSeconds());
         List<BadgeDTO> newBadges = badgeService.checkAndAwardBadges(
                 user, request.getExerciseId(), result.isCorrect(), result.getScore()
         );

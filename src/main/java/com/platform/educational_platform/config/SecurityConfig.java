@@ -54,7 +54,7 @@ public class SecurityConfig {
                         // ── Assets ───────────────────────────────────────────────────
                         .requestMatchers(HttpMethod.GET,    "/api/assets").hasAnyAuthority(EDITORS_UP)
                         .requestMatchers(HttpMethod.POST,   "/api/assets/upload").hasAnyAuthority(EDITORS_UP)
-                        .requestMatchers(HttpMethod.DELETE, "/api/assets/**").hasAuthority("ADMIN")
+                        .requestMatchers(HttpMethod.DELETE, "/api/assets/**").hasAnyAuthority(EDITORS_UP)
 
                         // ── Products ─────────────────────────────────────────────────
                         .requestMatchers(HttpMethod.GET,    "/api/products/**").hasAnyAuthority(LEARNERS)
@@ -95,8 +95,9 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.POST, "/api/exercises/versions/*/publish").hasAuthority("ADMIN")
                         .requestMatchers(HttpMethod.POST, "/api/exercises/versions/*/archive").hasAuthority("ADMIN")
                         .requestMatchers(HttpMethod.POST, "/api/exercises/versions/*/duplicate").hasAnyAuthority(EDITORS_UP)
-                        .requestMatchers(HttpMethod.POST, "/api/exercises/versions/*/template").hasAuthority("ADMIN")
-                        .requestMatchers(HttpMethod.DELETE, "/api/exercises/versions/*/template").hasAuthority("ADMIN")
+
+                        .requestMatchers(HttpMethod.POST, "/api/exercises/versions/*/template").hasAnyAuthority("EDITOR", "ADMIN")
+                        .requestMatchers(HttpMethod.DELETE, "/api/exercises/versions/*/template").hasAnyAuthority("EDITOR", "ADMIN")
                         .requestMatchers(HttpMethod.POST, "/api/exercises/from-template").hasAnyAuthority(EDITORS_UP)
 
                         // ── Exercises — metadata & filter ─────────────────────────────
@@ -181,6 +182,8 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET,    "/api/users/**").hasAnyAuthority(TEACHERS_UP)
                         .requestMatchers(HttpMethod.PUT,    "/api/users/**").hasAuthority("ADMIN")
                         .requestMatchers(HttpMethod.DELETE, "/api/users/**").hasAuthority("ADMIN")
+
+
 
                         .requestMatchers("/api/badges/**").hasAnyAuthority(LEARNERS)
 

@@ -45,7 +45,8 @@ public class ExerciseVersionController {
             @PathVariable Long versionId,
             @RequestBody(required = false) ReviewActionRequest req,
             Authentication authentication) {
-        return ResponseEntity.ok(versionService.approve(versionId, req, authentication.getName()));
+        String email = ((com.platform.educational_platform.model.User) authentication.getPrincipal()).getEmail();
+        return ResponseEntity.ok(versionService.approve(versionId, req, email));
     }
 
     @PostMapping("/versions/{versionId}/reject")
@@ -53,7 +54,8 @@ public class ExerciseVersionController {
             @PathVariable Long versionId,
             @RequestBody ReviewActionRequest req,
             Authentication authentication) {
-        return ResponseEntity.ok(versionService.reject(versionId, req, authentication.getName()));
+        String email = ((com.platform.educational_platform.model.User) authentication.getPrincipal()).getEmail();
+        return ResponseEntity.ok(versionService.reject(versionId, req, email));
     }
 
     @GetMapping("/versions/pending-review")
@@ -97,6 +99,7 @@ public class ExerciseVersionController {
     public ResponseEntity<ExerciseVersionDTO> createFromTemplate(
             @RequestBody CreateFromTemplateRequest req,
             Authentication authentication) {
-        return ResponseEntity.ok(versionService.createFromTemplate(req, authentication.getName()));
+        String email = ((com.platform.educational_platform.model.User) authentication.getPrincipal()).getEmail();
+        return ResponseEntity.ok(versionService.createFromTemplate(req, email));
     }
 }

@@ -8,6 +8,7 @@ import com.platform.educational_platform.dto.metadata.UpdateExerciseMetadataRequ
 import com.platform.educational_platform.model.User;
 import com.platform.educational_platform.model.enums.GradeLevel;
 import com.platform.educational_platform.model.enums.VersionStatus;
+import com.platform.educational_platform.repository.ExerciseRepository;
 import com.platform.educational_platform.service.ExerciseService;
 import com.platform.educational_platform.service.ExerciseSubmissionService;
 import com.platform.educational_platform.service.ExerciseVersionService;
@@ -27,6 +28,7 @@ public class ExerciseController {
     private final ExerciseService exerciseService;
     private final ExerciseVersionService versionService;
     private final ExerciseSubmissionService submissionService;
+    private final ExerciseRepository exerciseRepository;
 
     @GetMapping("/quiz/{quizId}")
     public ResponseEntity<List<ExerciseDTO>> getExercisesByQuiz(@PathVariable Long quizId) {
@@ -96,5 +98,15 @@ public class ExerciseController {
     @PostMapping("/check-placement")
     public ResponseEntity<CheckPlacementResponse> checkPlacement(@RequestBody CheckPlacementRequest req) {
         return ResponseEntity.ok(submissionService.checkPlacement(req));
+    }
+    @DeleteMapping("/{exerciseId}")
+    public ResponseEntity<Void> deleteExercise(
+            @PathVariable Long exerciseId) {
+        exerciseService.deleteExercise(exerciseId);
+        return ResponseEntity.noContent().build();
+    }
+    @GetMapping("/count")
+    public ResponseEntity<Long> getExerciseCount() {
+        return ResponseEntity.ok(exerciseRepository.count());
     }
 }

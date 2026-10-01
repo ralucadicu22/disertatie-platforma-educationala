@@ -23,7 +23,7 @@ public class UserProgressService {
 
     public void recordAttempt(User user, Exercise exercise,
                               boolean correct, int attemptNumber, int pointsEarned,
-                              QuizAttempt quizAttempt) {
+                              QuizAttempt quizAttempt, Integer durationSeconds) {
         UserProgress progress = UserProgress.builder()
                 .user(user)
                 .exercise(exercise)
@@ -31,6 +31,7 @@ public class UserProgressService {
                 .attemptNumber(attemptNumber)
                 .pointsEarned(pointsEarned)
                 .quizAttempt(quizAttempt)
+                .durationSeconds(durationSeconds)
                 .build();
         userProgressRepository.save(progress);
     }
@@ -57,6 +58,7 @@ public class UserProgressService {
         Long totalPoints = userProgressRepository.sumPointsByUser(userId);
         Long totalSubmissions = (long) userProgressRepository
                 .findByUserIdOrderBySubmittedAtDesc(userId).size();
+        Long totalDurationSeconds = userProgressRepository.sumDurationByUser(userId);
 
         return UserStatsDTO.builder()
                 .userId(user.getId())
@@ -64,6 +66,7 @@ public class UserProgressService {
                 .completedExercises(completed)
                 .totalSubmissions(totalSubmissions)
                 .totalPoints(totalPoints)
+                .totalDurationSeconds(totalDurationSeconds)
                 .build();
     }
 
@@ -74,6 +77,7 @@ public class UserProgressService {
                 .map(u -> getUserStats(u.getId()))
                 .collect(Collectors.toList());
     }
+
     public Double getClassAverageForExercise(Long exerciseId, Long userId) {
         Double avg = userProgressRepository.getClassAverageScoreForExercise(exerciseId, userId);
         return avg != null ? Math.round(avg * 100.0) / 100.0 : 0.0;
@@ -83,6 +87,7 @@ public class UserProgressService {
         Double avg = userProgressRepository.getAverageScoreForExercise(exerciseId);
         return avg != null ? Math.round(avg * 100.0) / 100.0 : 0.0;
     }
+
     private UserProgressDTO toDTO(UserProgress up) {
         return UserProgressDTO.builder()
                 .id(up.getId())
@@ -93,6 +98,7 @@ public class UserProgressService {
                 .attemptNumber(up.getAttemptNumber())
                 .pointsEarned(up.getPointsEarned())
                 .submittedAt(up.getSubmittedAt())
+                .durationSeconds(up.getDurationSeconds())
                 .build();
     }
 }

@@ -24,4 +24,6 @@ public class ExerciseDTO {
     private String topic;
     private GradeLevel gradeLevel;
     private Set<TagDTO> tags;
+    private String status;
+    private String name;
 }
