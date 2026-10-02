@@ -35,4 +35,8 @@ public interface UserRepository extends JpaRepository<User, Long> {
 
     @Query("SELECT p FROM UserProgress p WHERE p.user.id = :userId ORDER BY p.submittedAt DESC")
     List<UserProgress> findRecentByUserId(@Param("userId") Long userId, org.springframework.data.domain.Pageable pageable);
+
+    @Query("SELECT u.email FROM User u")
+    List<String> findAllEmails();
+
 }

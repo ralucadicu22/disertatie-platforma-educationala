@@ -171,7 +171,9 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/api/progress/student/**").hasAnyAuthority(TEACHERS_UP)
                         .requestMatchers("/api/progress/**").authenticated()
 
-
+                        .requestMatchers(HttpMethod.POST, "/api/admin/impersonation/start").hasAuthority("ADMIN")
+                        .requestMatchers(HttpMethod.POST, "/api/admin/impersonation/end").hasAuthority("ADMIN")
+                        .requestMatchers(HttpMethod.GET,  "/api/admin/impersonation/logs").hasAuthority("ADMIN")
                         // ── Admin / Editor / Teacher catch-all ────────────────────────
                         .requestMatchers("/api/admin/**").hasAuthority("ADMIN")
                         .requestMatchers("/api/editor/**").hasAnyAuthority(EDITORS_UP)
