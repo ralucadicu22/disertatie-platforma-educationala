@@ -45,6 +45,7 @@ public class SecurityConfig {
                 .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .addFilterBefore(new JwtFilter(jwtUtil, userRepository),
                         UsernamePasswordAuthenticationFilter.class)
+
                 .authorizeHttpRequests(auth -> auth
 
                         // ── Public ───────────────────────────────────────────────────
@@ -174,6 +175,11 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.POST, "/api/admin/impersonation/start").hasAuthority("ADMIN")
                         .requestMatchers(HttpMethod.POST, "/api/admin/impersonation/end").hasAuthority("ADMIN")
                         .requestMatchers(HttpMethod.GET,  "/api/admin/impersonation/logs").hasAuthority("ADMIN")
+                        .requestMatchers(HttpMethod.POST, "/api/admin/bulk-import/preview").hasAuthority("ADMIN")
+                        .requestMatchers(HttpMethod.POST, "/api/admin/bulk-import/import").hasAuthority("ADMIN")
+                        .requestMatchers(HttpMethod.GET,  "/api/admin/bulk-import/history").hasAuthority("ADMIN")
+                        .requestMatchers(HttpMethod.GET,  "/api/admin/bulk-import/template").hasAuthority("ADMIN")
+
                         // ── Admin / Editor / Teacher catch-all ────────────────────────
                         .requestMatchers("/api/admin/**").hasAuthority("ADMIN")
                         .requestMatchers("/api/editor/**").hasAnyAuthority(EDITORS_UP)
@@ -203,6 +209,7 @@ public class SecurityConfig {
         config.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
         config.setAllowedHeaders(Arrays.asList("Authorization", "Content-Type"));
         config.setAllowCredentials(true);
+        config.setAllowedHeaders(Arrays.asList("Authorization", "Content-Type", "X-Impersonating-As"));
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", config);
         return source;
