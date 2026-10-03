@@ -27,6 +27,10 @@ public class ImpersonationLog {
     @Column(nullable = false)
     private String adminName;
 
+    private Long impersonatedUserId;
+    private String impersonatedUserEmail;
+    private String impersonatedUserName;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private UserRole impersonatedRole;

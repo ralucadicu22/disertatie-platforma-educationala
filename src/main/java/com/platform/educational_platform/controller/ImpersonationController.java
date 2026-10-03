@@ -1,13 +1,14 @@
 package com.platform.educational_platform.controller;
 
+import com.platform.educational_platform.config.JwtFilter;
 import com.platform.educational_platform.model.ImpersonationLog;
 import com.platform.educational_platform.model.User;
 import com.platform.educational_platform.model.enums.UserRole;
 import com.platform.educational_platform.repository.ImpersonationLogRepository;
 import com.platform.educational_platform.repository.UserRepository;
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
@@ -27,66 +28,79 @@ public class ImpersonationController {
     private static final Set<UserRole> ALLOWED_ROLES =
             EnumSet.of(UserRole.ELEV, UserRole.PROFESOR, UserRole.PARINTE, UserRole.EDITOR);
 
-
     @PostMapping("/start")
-    public ResponseEntity<?> startImpersonation(
-            @RequestBody Map<String, String> body,
-            Authentication auth) {
-
-        UserRole targetRole;
-        try {
-            targetRole = UserRole.valueOf(body.getOrDefault("role", ""));
-        } catch (IllegalArgumentException e) {
-            return ResponseEntity.badRequest()
-                    .body(Map.of("message", "Rol invalid. Roluri permise: " + ALLOWED_ROLES));
-        }
-        if (!ALLOWED_ROLES.contains(targetRole)) {
-            return ResponseEntity.badRequest()
-                    .body(Map.of("message", "Rolul " + targetRole + " nu poate fi impersonat."));
+    public ResponseEntity<?> startImpersonation(@RequestBody Map<String, Object> body,
+                                                HttpServletRequest request) {
+        Long targetId = parseLong(body.get("userId"));
+        if (targetId == null) {
+            return ResponseEntity.badRequest().body(Map.of("message", "userId este necesar"));
         }
 
-        User admin = resolveAdmin(auth);
+        User target = userRepository.findById(targetId).orElse(null);
+        if (target == null) {
+            return ResponseEntity.badRequest().body(Map.of("message", "Utilizator negăsit"));
+        }
+        if (!ALLOWED_ROLES.contains(target.getRole())) {
+            return ResponseEntity.badRequest()
+                    .body(Map.of("message", "Rolul " + target.getRole() + " nu poate fi impersonat"));
+        }
+
+        User admin = resolveAdmin(request);
         logRepository.save(ImpersonationLog.builder()
                 .adminId(admin.getId())
                 .adminEmail(admin.getEmail())
                 .adminName(admin.getName())
-                .impersonatedRole(targetRole)
+                .impersonatedUserId(target.getId())
+                .impersonatedUserEmail(target.getEmail())
+                .impersonatedUserName(target.getName())
+                .impersonatedRole(target.getRole())
                 .action("START")
                 .timestamp(LocalDateTime.now())
                 .description("Admin " + admin.getName() + " (" + admin.getEmail() + ")"
-                        + " a început vizualizarea ca " + targetRole.name())
+                        + " a început vizualizarea ca " + target.getName()
+                        + " (" + target.getRole().name() + ")")
                 .build());
 
-        return ResponseEntity.ok(Map.of("success", true, "role", targetRole.name()));
+        return ResponseEntity.ok(Map.of(
+                "success", true,
+                "user", Map.of(
+                        "id", target.getId(),
+                        "name", target.getName(),
+                        "email", target.getEmail(),
+                        "role", target.getRole().name()
+                )
+        ));
     }
 
-
     @PostMapping("/end")
-    public ResponseEntity<?> endImpersonation(
-            @RequestBody Map<String, String> body,
-            Authentication auth) {
+    public ResponseEntity<?> endImpersonation(@RequestBody Map<String, Object> body,
+                                              HttpServletRequest request) {
+        Long targetId = parseLong(body.get("userId"));
+        User target = (targetId != null)
+                ? userRepository.findById(targetId).orElse(null)
+                : null;
 
-        UserRole impersonatedRole;
-        try {
-            impersonatedRole = UserRole.valueOf(body.getOrDefault("role", ""));
-        } catch (IllegalArgumentException e) {
-            impersonatedRole = null;
-        }
+        User admin = resolveAdmin(request);
 
-        User admin = resolveAdmin(auth);
-        String roleLabel = impersonatedRole != null ? impersonatedRole.name() : "NECUNOSCUT";
-
-        logRepository.save(ImpersonationLog.builder()
+        ImpersonationLog.ImpersonationLogBuilder builder = ImpersonationLog.builder()
                 .adminId(admin.getId())
                 .adminEmail(admin.getEmail())
                 .adminName(admin.getName())
-                .impersonatedRole(impersonatedRole)
                 .action("END")
-                .timestamp(LocalDateTime.now())
-                .description("Admin " + admin.getName() + " (" + admin.getEmail() + ")"
-                        + " a încheiat vizualizarea ca " + roleLabel)
-                .build());
+                .timestamp(LocalDateTime.now());
 
+        if (target != null) {
+            builder.impersonatedUserId(target.getId())
+                    .impersonatedUserEmail(target.getEmail())
+                    .impersonatedUserName(target.getName())
+                    .impersonatedRole(target.getRole())
+                    .description("Admin " + admin.getName() + " a încheiat vizualizarea ca "
+                            + target.getName() + " (" + target.getRole().name() + ")");
+        } else {
+            builder.description("Admin " + admin.getName() + " a încheiat vizualizarea");
+        }
+
+        logRepository.save(builder.build());
         return ResponseEntity.ok(Map.of("success", true));
     }
 
@@ -95,14 +109,15 @@ public class ImpersonationController {
         return ResponseEntity.ok(logRepository.findTop50ByOrderByTimestampDesc());
     }
 
+    private User resolveAdmin(HttpServletRequest request) {
+        Object attr = request.getAttribute(JwtFilter.ATTR_REAL_USER);
+        if (attr instanceof User u) return u;
+        throw new IllegalStateException("Admin user not available in request attributes");
+    }
 
-
-    private User resolveAdmin(Authentication auth) {
-        if (auth.getPrincipal() instanceof User user) {
-            return user;
-        }
-        String email = auth.getName();
-        return userRepository.findByEmail(email)
-                .orElseThrow(() -> new IllegalStateException("Admin user not found by email: " + email));
+    private Long parseLong(Object raw) {
+        if (raw == null) return null;
+        try { return Long.valueOf(raw.toString()); }
+        catch (NumberFormatException e) { return null; }
     }
 }
