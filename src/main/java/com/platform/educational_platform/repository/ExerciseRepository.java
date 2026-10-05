@@ -8,7 +8,8 @@ import org.springframework.stereotype.Repository;
 import java.util.List;
 
 @Repository
-public interface ExerciseRepository extends JpaRepository<Exercise, Long>,
+public interface
+ExerciseRepository extends JpaRepository<Exercise, Long>,
         JpaSpecificationExecutor<Exercise> {
     List<Exercise> findByQuizIdOrderByOrderIndexAsc(Long quizId);
 }
