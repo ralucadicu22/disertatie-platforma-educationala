@@ -85,6 +85,9 @@ public class ExerciseService {
         if (req.getTagIds() != null) {
             exercise.setTags(tagService.resolveTagIds(req.getTagIds()));
         }
+        if (req.getMaxAttempts() != null) {
+            exercise.setMaxAttempts(req.getMaxAttempts());
+        }
 
         return toDTO(exerciseRepository.save(exercise));
     }

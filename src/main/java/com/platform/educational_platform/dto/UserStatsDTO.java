@@ -16,4 +16,5 @@ public class UserStatsDTO {
     private Long totalSubmissions;
     private Long totalPoints;
     private Long totalDurationSeconds;
+    private Double avgAttemptsPerExercise;
 }

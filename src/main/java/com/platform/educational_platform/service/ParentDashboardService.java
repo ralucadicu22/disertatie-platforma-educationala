@@ -102,6 +102,9 @@ public class ParentDashboardService {
         Long totalSecondsSpent = userProgressRepository.sumDurationByUser(child.getId());
         long totalMinutesSpent = totalSecondsSpent != null ? totalSecondsSpent / 60 : 0;
 
+        Double avgAttemptsPerExercise = userProgressRepository
+                .getAvgAttemptsPerExercise(child.getId());
+
         return ParentDashboardDTO.ChildSummary.builder()
                 .childId(child.getId())
                 .childName(child.getName())
@@ -115,6 +118,7 @@ public class ParentDashboardService {
                 .lastExerciseTitle(lastExerciseTitle)
                 .classroomNames(classroomNames)
                 .totalMinutesSpent(totalMinutesSpent)
+                .avgAttemptsPerExercise(avgAttemptsPerExercise)
                 .build();
     }
 
@@ -143,6 +147,9 @@ public class ParentDashboardService {
         Long totalSecondsSpent = userProgressRepository.sumDurationByUser(child.getId());
         long totalMinutesSpent = totalSecondsSpent != null ? totalSecondsSpent / 60 : 0;
 
+        Double avgAttemptsPerExercise = userProgressRepository
+                .getAvgAttemptsPerExercise(child.getId());
+
         List<ParentDashboardDTO.QuizTimeInfo> quizTimeList = attempts.stream()
                 .filter(a -> a.getFinishedAt() != null && a.getStartedAt() != null)
                 .map(a -> ParentDashboardDTO.QuizTimeInfo.builder()
@@ -153,6 +160,7 @@ public class ParentDashboardService {
                         .finishedAt(a.getFinishedAt())
                         .minutesSpent(Duration.between(a.getStartedAt(), a.getFinishedAt()).toMinutes())
                         .status(a.getStatus().name())
+
                         .build())
                 .collect(Collectors.toList());
 
@@ -177,6 +185,7 @@ public class ParentDashboardService {
                 .recentAttempts(recentAttempts)
                 .classroomProgress(classroomProgress)
                 .quizTimeList(quizTimeList)
+                .avgAttemptsPerExercise(avgAttemptsPerExercise)
                 .build();
     }
 

@@ -23,4 +23,5 @@ public class SubmitAnswerResponse {
 
     private Integer attemptsRemaining;
     private List<BadgeDTO> newBadges;
+    private String behaviorOnFail;
 }

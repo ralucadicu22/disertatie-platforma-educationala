@@ -61,4 +61,24 @@ public interface UserProgressRepository extends JpaRepository<UserProgress, Long
     Long sumDurationByUser(@Param("userId") Long userId);
 
     void deleteByExerciseId(Long exerciseId);
+
+    @Query("""
+    SELECT AVG(cnt) FROM (
+        SELECT CAST(COUNT(up) AS double) AS cnt
+        FROM UserProgress up
+        WHERE up.user.id = :userId
+        GROUP BY up.exercise.id
+    ) counts
+""")
+    Double getAvgAttemptsPerExercise(@Param("userId") Long userId);
+
+    @Query("""
+    SELECT AVG(cnt) FROM (
+        SELECT CAST(COUNT(up) AS double) AS cnt
+        FROM UserProgress up
+        WHERE up.exercise.id = :exerciseId
+        GROUP BY up.user.id
+    ) counts
+""")
+    Double getAvgAttemptsPerUserForExercise(@Param("exerciseId") Long exerciseId);
 }

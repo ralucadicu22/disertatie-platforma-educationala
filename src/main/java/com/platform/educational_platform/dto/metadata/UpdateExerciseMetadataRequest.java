@@ -11,4 +11,5 @@ public class UpdateExerciseMetadataRequest {
     private GradeLevel gradeLevel;
     private String difficulty;
     private Set<Long> tagIds;
+    private Integer maxAttempts;
 }

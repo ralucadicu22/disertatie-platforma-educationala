@@ -106,7 +106,14 @@ public class ExerciseSubmissionService {
 
         Integer attemptsRemaining = unlimited ? null :
                 Math.max(0, maxAttempts - attemptNumber);
-
+        String behaviorOnFail = null;
+        try {
+            JsonNode settings = config.path("settings");
+            if (!settings.isMissingNode() && !settings.isNull()) {
+                String bof = settings.path("behaviorOnFail").asText(null);
+                if (bof != null && !bof.isEmpty()) behaviorOnFail = bof;
+            }
+        } catch (Exception ignored) {}
         return SubmitAnswerResponse.builder()
                 .correct(result.isCorrect())
                 .score(result.getScore())
@@ -114,6 +121,7 @@ public class ExerciseSubmissionService {
                 .maxAttempts(maxAttempts)
                 .attemptsRemaining(attemptsRemaining)
                 .newBadges(newBadges)
+                .behaviorOnFail(behaviorOnFail)
                 .build();
     }
 
