@@ -46,6 +46,7 @@ public class BulkImportService {
     private final ImportHistoryRepository importHistoryRepository;
     private final PasswordEncoder passwordEncoder;
     private final ObjectMapper objectMapper;
+    private final EmailService emailService;
 
 
     public BulkImportPreviewResponse preview(MultipartFile file) throws IOException {
@@ -78,7 +79,19 @@ public class BulkImportService {
                             .createdAt(LocalDateTime.now())
                             .build();
                     userRepository.save(user);
-                    existingEmails.add(result.getEmail().toLowerCase().trim()); // prevent intra-batch duplicates
+                    existingEmails.add(result.getEmail().toLowerCase().trim());
+                    result.setTempPassword(tempPassword);
+                    try {
+                        emailService.sendTempPassword(user.getEmail(), user.getName(), tempPassword);
+                        Thread.sleep(1100);
+                    } catch (InterruptedException ie) {
+                        Thread.currentThread().interrupt();
+                    } catch (Exception e) {
+                        log.warn("Nu s-a putut trimite emailul către {}: {}", user.getEmail(), e.getMessage());
+                    }
+
+                    successCount++;
+                    existingEmails.add(result.getEmail().toLowerCase().trim());
                     result.setTempPassword(tempPassword);
                     successCount++;
                 } catch (Exception e) {
