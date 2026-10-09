@@ -51,7 +51,7 @@ public class SecurityConfig {
                         // ── Public ───────────────────────────────────────────────────
                         .requestMatchers("/uploads/**").permitAll()
                         .requestMatchers("/api/auth/**").permitAll()
-
+                        .requestMatchers("/api/users/count", "/api/exercises/count").hasAuthority("ADMIN")
                         // ── Assets ───────────────────────────────────────────────────
                         .requestMatchers(HttpMethod.GET,    "/api/assets").hasAnyAuthority(EDITORS_UP)
                         .requestMatchers(HttpMethod.POST,   "/api/assets/upload").hasAnyAuthority(EDITORS_UP)

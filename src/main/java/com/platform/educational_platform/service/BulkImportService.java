@@ -36,7 +36,9 @@ import java.util.regex.Pattern;
 public class BulkImportService {
 
     private static final Set<String> VALID_ROLES = Set.of("ELEV", "PROFESOR", "PARINTE", "EDITOR", "ADMIN");
-    private static final Pattern EMAIL_PATTERN = Pattern.compile("^[\\w.+-]+@[\\w-]+\\.[\\w.]+$");
+    private static final Pattern EMAIL_PATTERN = Pattern.compile(
+            "^[\\w.+-]+@[\\w-]+(\\.[\\w-]+)*\\.[a-zA-Z]{2,}$"
+    );
     private static final String CHARS = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789";
     private static final SecureRandom RANDOM = new SecureRandom();
 
@@ -150,14 +152,18 @@ public class BulkImportService {
                     .status("INVALID").errorMessage("Email lipsă").build();
         }
         String email = raw.email().toLowerCase().trim();
-
+        String localPart = email.contains("@") ? email.substring(0, email.indexOf('@')) : email;
+        if (localPart.contains("..") || localPart.startsWith(".") || localPart.endsWith(".")) {
+            return BulkImportRowResult.builder()
+                    .rowNumber(raw.rowNumber()).email(email).name(raw.name()).role(raw.role())
+                    .status("INVALID").errorMessage("Format email invalid (puncte consecutive)").build();
+        }
 
         if (!EMAIL_PATTERN.matcher(email).matches()) {
             return BulkImportRowResult.builder()
                     .rowNumber(raw.rowNumber()).email(email).name(raw.name()).role(raw.role())
                     .status("INVALID").errorMessage("Format email invalid").build();
         }
-
 
         if (raw.role() == null || raw.role().isBlank()) {
             return BulkImportRowResult.builder()
@@ -170,7 +176,6 @@ public class BulkImportService {
                     .rowNumber(raw.rowNumber()).email(email).name(raw.name()).role(role)
                     .status("INVALID").errorMessage("Rol invalid: " + role + ". Valori acceptate: " + VALID_ROLES).build();
         }
-
 
         if (existingEmails.contains(email) || seenInFile.contains(email)) {
             return BulkImportRowResult.builder()

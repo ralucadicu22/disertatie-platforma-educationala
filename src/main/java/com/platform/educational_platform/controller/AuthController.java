@@ -8,6 +8,7 @@ import com.platform.educational_platform.dto.auth.UserDTO;
 import com.platform.educational_platform.model.User;
 import com.platform.educational_platform.model.enums.UserRole;
 import com.platform.educational_platform.repository.UserRepository;
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -44,7 +45,8 @@ public class AuthController {
     }
 
     @PostMapping("/login")
-    public ResponseEntity<AuthResponse> login(@RequestBody LoginRequest request) {
+    public ResponseEntity<AuthResponse> login(@RequestBody LoginRequest request,
+                                              HttpServletRequest httpRequest) {
         User user = userRepository.findByEmail(request.getEmail())
                 .orElseThrow(() -> new RuntimeException("Utilizator negăsit"));
 
@@ -52,6 +54,9 @@ public class AuthController {
             return ResponseEntity.badRequest()
                     .body(new AuthResponse(null, "Parolă greșită"));
         }
+
+        // Setează email-ul pentru ActivityLogInterceptor
+        httpRequest.setAttribute("loggedInEmail", user.getEmail());
 
         String token = jwtUtil.generateToken(user);
         return ResponseEntity.ok(new AuthResponse(token, "Login reușit"));
