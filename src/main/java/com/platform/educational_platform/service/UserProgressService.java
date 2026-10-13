@@ -60,6 +60,12 @@ public class UserProgressService {
                 .findByUserIdOrderBySubmittedAtDesc(userId).size();
         Long totalDurationSeconds = userProgressRepository.sumDurationByUser(userId);
 
+        // FIX: populează media încercărilor per exercițiu
+        Double avgRaw = userProgressRepository.getAvgAttemptsPerExercise(userId);
+        Double avgAttemptsPerExercise = avgRaw != null
+                ? Math.round(avgRaw * 10.0) / 10.0
+                : null;
+
         return UserStatsDTO.builder()
                 .userId(user.getId())
                 .userName(user.getName())
@@ -67,6 +73,7 @@ public class UserProgressService {
                 .totalSubmissions(totalSubmissions)
                 .totalPoints(totalPoints)
                 .totalDurationSeconds(totalDurationSeconds)
+                .avgAttemptsPerExercise(avgAttemptsPerExercise)
                 .build();
     }
 

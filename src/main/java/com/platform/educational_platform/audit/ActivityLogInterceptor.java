@@ -85,14 +85,12 @@ public class ActivityLogInterceptor implements HandlerInterceptor {
             String email = null;
             User user = null;
 
-            // Userul real (mereu adminul, nu cel impersonat)
             Object realUserAttr = request.getAttribute("realAuthenticatedUser");
             if (realUserAttr instanceof User u) {
                 user = u;
                 email = u.getEmail();
             }
 
-            // Fallback pentru LOGIN
             if (user == null) {
                 String emailFromAttr = (String) request.getAttribute("loggedInEmail");
                 if (emailFromAttr != null) {
@@ -101,7 +99,6 @@ public class ActivityLogInterceptor implements HandlerInterceptor {
                 }
             }
 
-            // Descriere îmbogățită pentru impersonare
             String description = descriptor.description();
             if ("IMPERSONATE_START".equals(descriptor.action()) || "IMPERSONATE_END".equals(descriptor.action())) {
                 Authentication auth = SecurityContextHolder.getContext().getAuthentication();
@@ -132,8 +129,7 @@ public class ActivityLogInterceptor implements HandlerInterceptor {
     private ActionDescriptor matchAction(String method, String uri) {
         String stripped = uri.replaceAll("/\\d+(?=/|$)", "");
         ActionDescriptor result = ACTIONS.get(method + " " + stripped);
-        // LOG TEMPORAR - șterge după debug
-        System.out.println("ACTIVITY LOG CHECK: " + method + " " + stripped + " -> " + (result != null ? result.action() : "NO MATCH"));
+
         return result;
     }
 
