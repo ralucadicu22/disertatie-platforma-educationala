@@ -107,7 +107,7 @@ public class SecurityConfig {
 
                         // ── Exercises — hints ─────────────────────────────────────────
                         .requestMatchers("/api/exercises/*/hints/available").authenticated()
-                        .requestMatchers("/api/exercises/*/hints/all").hasAnyAuthority(STAFF)
+                        .requestMatchers("/api/exercises/*/hints/all").hasAnyAuthority(LEARNERS)
 
                         // ── Exercises — submission (elevi) ────────────────────────────
                         .requestMatchers(HttpMethod.POST, "/api/exercises/submit").hasAnyAuthority(LEARNERS)

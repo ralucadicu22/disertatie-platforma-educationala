@@ -12,4 +12,5 @@ public interface
 ExerciseRepository extends JpaRepository<Exercise, Long>,
         JpaSpecificationExecutor<Exercise> {
     List<Exercise> findByQuizIdOrderByOrderIndexAsc(Long quizId);
+
 }

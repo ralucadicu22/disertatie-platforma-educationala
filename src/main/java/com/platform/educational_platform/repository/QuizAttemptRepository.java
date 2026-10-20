@@ -27,4 +27,22 @@ public interface QuizAttemptRepository extends JpaRepository<QuizAttempt, Long> 
     int countCompletedByUserAndQuiz(@Param("userId") Long userId, @Param("quizId") Long quizId);
 
     void deleteByQuizId(Long quizId);
+    @Query("""
+        SELECT qa.user.id, COUNT(qa.id)
+        FROM QuizAttempt qa
+        WHERE qa.status = 'IN_PROGRESS'
+          AND qa.finishedAt IS NULL
+        GROUP BY qa.user.id
+    """)
+    List<Object[]> findAbandonedQuizzesPerStudent();
+
+    @Query("""
+        SELECT qa
+        FROM QuizAttempt qa
+        WHERE qa.user.id = :studentId
+          AND qa.status = 'IN_PROGRESS'
+          AND qa.finishedAt IS NULL
+        ORDER BY qa.startedAt DESC
+    """)
+    List<QuizAttempt> findAbandonedQuizzesForStudent(@Param("studentId") Long studentId);
 }
